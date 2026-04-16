@@ -1,0 +1,491 @@
+{% extends "admin/base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block header_title %}Dashboard Overview{% endblock %}
+
+{% block content %}
+<style>
+  .metric-card {
+    padding: 1.25rem;
+    border-radius: 18px;
+    background: white;
+    border: 1px solid #e2edf9;
+    transition: all 0.15s;
+  }
+
+  .metric-card .metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1c3e5e;
+    line-height: 1.2;
+  }
+
+  .metric-card .metric-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6b7d99;
+    font-weight: 600;
+  }
+</style>
+
+<!-- MAIN ADMIN EXCLUSIVE CONTROL PANEL -->
+{% if current_user.email == 'joshichaitanya354@gmail.com' %}
+<div class="mt-5 mb-4">
+  <h4 class="fw-bold mb-3"><i class="bi bi-shield-shaded text-danger me-2"></i>Main Admin Control Panel</h4>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white pt-3 pb-0 border-0">
+      <ul class="nav nav-tabs border-bottom-0" id="mainAdminTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active fw-semibold text-dark" data-bs-toggle="tab" data-bs-target="#tab-users"
+            type="button" role="tab"><i class="bi bi-people me-2"></i>User Segregation</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link fw-semibold text-dark" data-bs-toggle="tab" data-bs-target="#tab-platforms"
+            type="button" role="tab"><i class="bi bi-shop-window me-2"></i>Platform Restrictions</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link fw-semibold text-dark" data-bs-toggle="tab" data-bs-target="#tab-logs" type="button"
+            role="tab"><i class="bi bi-activity me-2"></i>Activity & Logs</button>
+        </li>
+      </ul>
+    </div>
+
+    <div class="card-body p-4 bg-light bg-opacity-50">
+      <div class="tab-content" id="mainAdminTabsContent">
+
+        <!-- User Segregation & Control Tab -->
+        <div class="tab-pane fade show active" id="tab-users" role="tabpanel">
+          <div class="row g-4">
+
+            <!-- Admins -->
+            <div class="col-12">
+              <h6 class="fw-bold text-primary mb-3">Administrator Accounts</h6>
+              <div class="card border-0 shadow-sm">
+                <div class="table-responsive">
+                  <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Username / Email</th>
+                        <th>Joined</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for u in main_admin_admins %}
+                      <tr>
+                        <td>
+                          <span class="fw-bold d-block">{{ u.username }}</span>
+                          <small class="text-muted">{{ u.email }}</small>
+                        </td>
+                        <td class="small">{{ u.created_at.strftime('%d %b %Y') }}</td>
+                        <td>
+                          {% if u.is_blocked %}<span class="badge bg-danger rounded-pill">Blocked</span>
+                          {% elif u.is_frozen %}<span class="badge bg-warning text-dark rounded-pill">Frozen</span>
+                          {% else %}<span class="badge bg-success rounded-pill">Active</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                          <form
+                            action="{{ url_for('toggle_user_status', user_id=u.id, action='unblock' if u.is_blocked else 'block') }}"
+                            method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token"
+                              value="{{ csrf_token() if csrf_token is defined else '' }}">
+                            <button type="submit"
+                              class="btn btn-sm {{ 'btn-success' if u.is_blocked else 'btn-outline-danger' }}"
+                              onclick="return confirm('Change block status?');">
+                              {{ 'Unblock' if u.is_blocked else 'Block' }}
+                            </button>
+                          </form>
+                          <form
+                            action="{{ url_for('toggle_user_status', user_id=u.id, action='unfreeze' if u.is_frozen else 'freeze') }}"
+                            method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token"
+                              value="{{ csrf_token() if csrf_token is defined else '' }}">
+                            <button type="submit"
+                              class="btn btn-sm {{ 'btn-outline-success' if u.is_frozen else 'btn-warning' }}"
+                              onclick="return confirm('Change freeze status?');">
+                              {{ 'Unfreeze' if u.is_frozen else 'Freeze' }}
+                            </button>
+                          </form>
+                        </td>
+                      </tr>
+                      {% else %}
+                      <tr>
+                        <td colspan="4" class="text-center text-muted py-3">No other admins found.</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Regular Users -->
+            <div class="col-12 mt-4">
+              <h6 class="fw-bold text-secondary mb-3">Regular Users</h6>
+              <div class="card border-0 shadow-sm" style="max-height: 400px; overflow-y: auto;">
+                <div class="table-responsive">
+                  <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light sticky-top">
+                      <tr>
+                        <th>Username / Email</th>
+                        <th>Joined</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for u in main_admin_regular_users %}
+                      <tr>
+                        <td>
+                          <span class="fw-bold d-block">{{ u.username }}</span>
+                          <small class="text-muted">{{ u.email }}</small>
+                        </td>
+                        <td class="small">{{ u.created_at.strftime('%d %b %Y') }}</td>
+                        <td>
+                          {% if u.is_blocked %}<span class="badge bg-danger rounded-pill">Blocked</span>
+                          {% elif u.is_frozen %}<span class="badge bg-warning text-dark rounded-pill">Frozen</span>
+                          {% else %}<span class="badge bg-success rounded-pill">Active</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                          <form
+                            action="{{ url_for('toggle_user_status', user_id=u.id, action='unblock' if u.is_blocked else 'block') }}"
+                            method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token"
+                              value="{{ csrf_token() if csrf_token is defined else '' }}">
+                            <button type="submit"
+                              class="btn btn-sm {{ 'btn-success' if u.is_blocked else 'btn-outline-danger' }}"
+                              onclick="return confirm('Change block status?');">
+                              {{ 'Unblock' if u.is_blocked else 'Block' }}
+                            </button>
+                          </form>
+                          <form
+                            action="{{ url_for('toggle_user_status', user_id=u.id, action='unfreeze' if u.is_frozen else 'freeze') }}"
+                            method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token"
+                              value="{{ csrf_token() if csrf_token is defined else '' }}">
+                            <button type="submit"
+                              class="btn btn-sm {{ 'btn-outline-success' if u.is_frozen else 'btn-warning' }}"
+                              onclick="return confirm('Change freeze status?');">
+                              {{ 'Unfreeze' if u.is_frozen else 'Freeze' }}
+                            </button>
+                          </form>
+                        </td>
+                      </tr>
+                      {% else %}
+                      <tr>
+                        <td colspan="4" class="text-center text-muted py-3">No regular users found.</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Platform Restrictions Tab -->
+        <div class="tab-pane fade" id="tab-platforms" role="tabpanel">
+          <div class="row g-4">
+            <div class="col-md-5">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                  <h6 class="fw-bold mb-3">Add Restriction</h6>
+                  <p class="text-muted small">Products containing this seller name will be instantly hidden from all
+                    user search results.</p>
+                  <form action="{{ url_for('restrict_platform') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+                    <div class="input-group mb-3">
+                      <span class="input-group-text"><i class="bi bi-shop"></i></span>
+                      <input type="text" name="platform_name" class="form-control" placeholder="e.g. ebay, meesho"
+                        required>
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100 fw-bold">Restrict Platform</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-7">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-0">
+                  <h6 class="fw-bold p-3 border-bottom mb-0">Currently Restricted</h6>
+                  {% if restricted_platforms %}
+                  <ul class="list-group list-group-flush">
+                    {% for rp in restricted_platforms %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                      <span class="fw-semibold text-danger"><i class="bi bi-slash-circle me-2"></i>{{ rp.name | title
+                        }}</span>
+                      <form action="{{ url_for('unrestrict_platform', plat_id=rp.id) }}" method="POST" class="m-0">
+                        <input type="hidden" name="csrf_token"
+                          value="{{ csrf_token() if csrf_token is defined else '' }}">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary"
+                          onclick="return confirm('Remove restriction?');">Unrestrict</button>
+                      </form>
+                    </li>
+                    {% endfor %}
+                  </ul>
+                  {% else %}
+                  <div class="p-4 text-center text-muted">
+                    <i class="bi bi-shield-check fs-2 d-block mb-2 text-success opacity-50"></i>
+                    <p class="mb-0 small">No platforms are restricted.</p>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Logs Tab -->
+        <div class="tab-pane fade" id="tab-logs" role="tabpanel">
+          <div class="card border-0 shadow-sm" style="max-height: 500px; overflow-y: auto;">
+            <div class="table-responsive">
+              <table class="table table-hover table-sm mb-0">
+                <thead class="table-light sticky-top">
+                  <tr>
+                    <th>Date & Time</th>
+                    <th>User / Admin</th>
+                    <th>Action</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody class="small">
+                  {% for log in recent_logs %}
+                  <tr>
+                    <td class="text-muted">{{ log.timestamp.strftime('%d %b, %H:%M') }}</td>
+                    <td class="fw-medium">{{ log.user.username if log.user else 'System' }}</td>
+                    <td>
+                      {% if 'block' in log.action or 'reject' in log.action %}
+                      <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">{{
+                        log.action }}</span>
+                      {% elif 'frozen' in log.action %}
+                      <span
+                        class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">{{
+                        log.action }}</span>
+                      {% elif 'approve' in log.action or 'success' in log.action %}
+                      <span
+                        class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">{{
+                        log.action }}</span>
+                      {% else %}
+                      <span
+                        class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">{{
+                        log.action }}</span>
+                      {% endif %}
+                    </td>
+                    <td>{{ log.details }}</td>
+                  </tr>
+                  {% else %}
+                  <tr>
+                    <td colspan="4" class="text-center text-muted py-4">No system activity logged yet.</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+
+<!-- 6 METRIC CARDS (light blue icons) -->
+<div class="row g-3 mb-5">
+  <div class="col-sm-6 col-md-4 col-xl-2">
+    <div class="metric-card d-flex align-items-center">
+      <div class="stat-icon bg-soft-primary me-3"><i class="bi bi-people-fill"></i></div>
+      <div>
+        <div class="metric-value">{{ total_users }}</div>
+        <div class="metric-label">Total Users</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-md-4 col-xl-2">
+    <div class="metric-card d-flex align-items-center">
+      <div class="stat-icon bg-soft-success me-3"><i class="bi bi-box-seam-fill"></i></div>
+      <div>
+        <div class="metric-value">{{ total_products }}</div>
+        <div class="metric-label">Products</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-md-4 col-xl-2">
+    <div class="metric-card d-flex align-items-center">
+      <div class="stat-icon bg-soft-warning me-3"><i class="bi bi-tag-fill"></i></div>
+      <div>
+        <div class="metric-value">{{ total_offers }}</div>
+        <div class="metric-label">Offers</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-md-4 col-xl-2">
+    <div class="metric-card d-flex align-items-center">
+      <div class="stat-icon bg-soft-info me-3"><i class="bi bi-search-heart-fill"></i></div>
+      <div>
+        <div class="metric-value">{{ total_searches }}</div>
+        <div class="metric-label">Searches</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-md-4 col-xl-2">
+    <div class="metric-card d-flex align-items-center">
+      <div class="stat-icon bg-soft-danger me-3"><i class="bi bi-bell-fill"></i></div>
+      <div>
+        <div class="metric-value">{{ total_alerts }}</div>
+        <div class="metric-label">Alerts</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-md-4 col-xl-2">
+    <div class="metric-card d-flex align-items-center">
+      <div class="stat-icon bg-soft-secondary me-3"><i class="bi bi-eye-fill"></i></div>
+      <div>
+        <div class="metric-value">{{ top_products[0].views if top_products else 0 }}</div>
+        <div class="metric-label">Peak Views</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TWO ROWS OF TABLES -->
+<div class="row g-4">
+  <!-- Recent Users -->
+  <div class="col-lg-6">
+    <div class="admin-card h-100">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center" style="background:#f8fbfe;">
+        <h6 class="fw-bold mb-0"><i class="bi bi-person-plus-fill text-primary me-2"></i>Recent Users</h6>
+        <a href="{{ url_for('admin_users') }}" class="btn btn-sm btn-outline-primary px-3"
+          style="border-radius: 20px; font-weight: 500;">See All</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th class="ps-4">Username</th>
+              <th>Email</th>
+              <th>Joined</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in recent_users %}
+            <tr>
+              <td class="ps-4 fw-medium">
+                {{ user.username }}
+                {% if user.is_admin %}<span class="badge bg-danger bg-opacity-10 text-danger ms-1"
+                  style="font-size:0.6rem;">Admin</span>{% endif %}
+              </td>
+              <td class="text-muted small">{{ user.email }}</td>
+              <td class="text-muted small">{{ user.created_at.strftime('%d %b %Y') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <!-- Most Viewed Products -->
+  <div class="col-lg-6">
+    <div class="admin-card h-100">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center" style="background:#f8fbfe;">
+        <h6 class="fw-bold mb-0"><i class="bi bi-fire text-danger me-2"></i>Most Viewed Products</h6>
+        <a href="{{ url_for('admin_products') }}" class="btn btn-sm btn-outline-primary px-3"
+          style="border-radius: 20px; font-weight: 500;">See All</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th class="ps-4">Product</th>
+              <th>Views</th>
+              <th>Offers</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for product in top_products %}
+            <tr>
+              <td class="ps-4 fw-medium text-truncate" style="max-width:200px;">{{ product.name }}</td>
+              <td><span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1 rounded-pill">{{ product.views
+                  }}</span></td>
+              <td><span class="badge bg-success bg-opacity-10 text-success px-3 py-1 rounded-pill">{{
+                  product.offers|length }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <!-- Recent Alerts -->
+  <div class="col-lg-6">
+    <div class="admin-card h-100">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center" style="background:#f8fbfe;">
+        <h6 class="fw-bold mb-0"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Recent Alerts</h6>
+        <span class="badge-soft-primary">Latest</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th class="ps-4">Message</th>
+              <th>Product</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for alert in recent_alerts %}
+            <tr>
+              <td class="ps-4 fw-medium">{{ alert.message }}</td>
+              <td>{{ alert.product.name if alert.product else '—' }}</td>
+              <td class="text-muted small">{{ alert.created_at.strftime('%H:%M %d %b') }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="3" class="text-center text-muted py-3">No recent alerts</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <!-- Recent Searches -->
+  <div class="col-lg-6">
+    <div class="admin-card h-100">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center" style="background:#f8fbfe;">
+        <h6 class="fw-bold mb-0"><i class="bi bi-clock-history text-info me-2"></i>Recent Searches</h6>
+        <span class="badge-soft-primary">Last 5</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th class="ps-4">Query</th>
+              <th>User</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for search in recent_searches %}
+            <tr>
+              <td class="ps-4 fw-medium">{{ search.query }}</td>
+              <td>{{ search.user.username if search.user else 'Guest' }}</td>
+              <td class="text-muted small">{{ search.created_at.strftime('%H:%M %d %b') }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="3" class="text-center text-muted py-3">No recent searches</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

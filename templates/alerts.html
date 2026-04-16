@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}My Price Alerts — SmartShoppy{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="fw-bold mb-1"><i class="bi bi-bell text-warning me-2"></i>My Price Alerts</h4>
+      <p class="text-muted small mb-0">Get notified when prices drop to your target</p>
+    </div>
+    <a href="{{ url_for('new_alert') }}" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-1"></i> New Alert
+    </a>
+  </div>
+
+  {% if alerts %}
+  <div class="row g-4">
+    {% for alert in alerts %}
+    <div class="col-12">
+      <div
+        class="card shadow-sm border-0 rounded-4 overflow-hidden {% if alert.triggered %}border-start border-success border-4{% else %}border-start border-primary border-4{% endif %}">
+        <div class="card-body p-4">
+          <div class="row align-items-center g-3">
+            <!-- Product Image -->
+            <div class="col-auto">
+              <div class="bg-white border rounded p-2 d-flex align-items-center justify-content-center"
+                style="width: 80px; height: 80px;">
+                {% if alert.product.image_url %}
+                <img src="{{ alert.product.image_url }}" alt="Product" class="img-fluid"
+                  style="max-height: 100%; object-fit: contain;">
+                {% else %}
+                <i class="bi bi-image text-muted fs-3"></i>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Alert Details -->
+            <div class="col">
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span
+                  class="badge rounded-pill {% if alert.triggered %}bg-success{% else %}bg-primary{% endif %} text-white px-3 py-1 small">
+                  {% if alert.triggered %}<i class="bi bi-check-circle me-1"></i>Triggered{% else %}<i
+                    class="bi bi-clock me-1"></i>Active{% endif %}
+                </span>
+                <small class="text-muted"><i class="bi bi-calendar me-1"></i>{{ alert.created_at.strftime('%d %b %Y')
+                  }}</small>
+              </div>
+              <a href="{{ url_for('product_detail', slug=alert.product.slug) }}"
+                class="fw-bold text-dark text-decoration-none d-block mb-2" style="line-height: 1.4;">
+                {{ alert.product.name }}
+              </a>
+              <div class="d-flex flex-wrap align-items-center gap-3">
+                <div
+                  class="bg-success bg-opacity-10 text-success px-3 py-1 rounded-pill border border-success border-opacity-25 small fw-semibold">
+                  <i class="bi bi-bullseye me-1"></i>Target Price: ₹{{ "{:,.0f}".format(alert.target_price) }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="col-md-auto text-md-end mt-3 mt-md-0 d-flex justify-content-start justify-content-md-end">
+              <form action="{{ url_for('delete_alert', alert_id=alert.id) }}" method="post" class="m-0">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm px-3 py-2 fw-semibold"
+                  onclick="return confirm('Are you sure you want to delete this price alert?')">
+                  <i class="bi bi-trash3 me-1"></i>Delete Alert
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% else %}
+      <div class="ss-card text-center py-5 shadow-sm border-0 rounded-4">
+        <div
+          class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3"
+          style="width: 80px; height: 80px;">
+          <i class="bi bi-bell-slash fs-1"></i>
+        </div>
+        <h5 class="fw-bold text-dark mb-2">No price alerts yet</h5>
+        <p class="text-muted small mb-4">Set an alert and get an email when a product drops to your target price.</p>
+        <a href="{{ url_for('new_alert') }}" class="btn btn-primary px-4 py-2 fw-semibold">
+          <i class="bi bi-bell me-1"></i> Create Your First Alert
+
+        </a>
+      </div>
+      {% endif %}
+    </div>
+    {% endblock %}

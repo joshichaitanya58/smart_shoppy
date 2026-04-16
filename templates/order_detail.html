@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block title %}Order {{ order.order_id }} — SmartShoppy{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h4 class="fw-bold mb-3">Order Details</h4>
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <h5>Order {{ order.order_id }}</h5>
+          <p class="text-muted">Placed on {{ order.created_at.strftime('%d %b %Y, %I:%M %p') }}</p>
+        </div>
+        <span class="badge {% if order.status=='Placed' %}bg-secondary{% elif order.status=='Processing' %}bg-primary{% elif order.status=='Shipped' %}bg-info{% elif order.status=='Delivered' %}bg-success{% else %}bg-light text-dark{% endif %} fs-6">{{ order.status }}</span>
+      </div>
+      <hr>
+      
+      <!-- Order Tracking Timeline -->
+      {% set status_map = {'Placed': 1, 'Processing': 2, 'Shipped': 3, 'Delivered': 4} %}
+      {% set current_step = status_map.get(order.status, 1) %}
+      
+      <style>
+        .order-track { display: flex; margin: 2.5rem 0; width: 100%; }
+        .order-track-step { flex: 1; position: relative; text-align: center; }
+        .order-track-step:not(:last-child)::after {
+          content: ''; position: absolute; top: 22px; left: 50%; width: 100%; height: 4px; background: var(--ss-border, #e9ecef); z-index: 1; transition: background 0.3s;
+        }
+        .order-track-step.completed:not(:last-child)::after { background: #198754; }
+        .order-track-icon {
+          width: 48px; height: 48px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+          background: var(--ss-card-bg, #fff); border: 3px solid var(--ss-border, #e9ecef); color: #adb5bd; position: relative; z-index: 2; font-size: 1.3rem; transition: all 0.3s ease;
+        }
+        .order-track-step.completed .order-track-icon, .order-track-step.active .order-track-icon {
+          background: #198754; border-color: #198754; color: #fff;
+        }
+        .order-track-step.active .order-track-icon { box-shadow: 0 0 0 6px rgba(25, 135, 84, 0.2); }
+        .order-track-text { margin-top: 0.75rem; font-size: 0.85rem; font-weight: 600; color: var(--ss-text-muted, #6c757d); }
+        .order-track-step.completed .order-track-text, .order-track-step.active .order-track-text { color: var(--ss-text, #212529); }
+        
+        .order-track-step.cancelled .order-track-icon { background: #dc3545 !important; border-color: #dc3545 !important; color: #fff !important; box-shadow: 0 0 0 6px rgba(220, 53, 69, 0.2) !important; }
+        .order-track-step.cancelled .order-track-text { color: #dc3545 !important; }
+        .order-track-step.cancelled-prev:not(:last-child)::after { background: #dc3545 !important; }
+        @media (max-width: 576px) {
+          .order-track-icon { width: 36px; height: 36px; font-size: 1.1rem; }
+          .order-track-step:not(:last-child)::after { top: 16px; }
+          .order-track-text { font-size: 0.75rem; }
+        }
+      </style>
+      
+      <div class="order-track">
+        {% if order.status == 'Cancelled' %}
+        <div class="order-track-step completed cancelled-prev">
+          <div class="order-track-icon"><i class="bi bi-cart-check-fill"></i></div>
+          <div class="order-track-text">Order Placed</div>
+        </div>
+        <div class="order-track-step cancelled active">
+          <div class="order-track-icon"><i class="bi bi-x-circle-fill"></i></div>
+          <div class="order-track-text">Cancelled</div>
+        </div>
+        {% else %}
+        <div class="order-track-step {% if current_step > 1 %}completed{% elif current_step == 1 %}active{% endif %}">
+          <div class="order-track-icon"><i class="bi bi-cart-check-fill"></i></div>
+          <div class="order-track-text">Order Placed</div>
+        </div>
+        <div class="order-track-step {% if current_step > 2 %}completed{% elif current_step == 2 %}active{% endif %}">
+          <div class="order-track-icon"><i class="bi bi-box-seam-fill"></i></div>
+          <div class="order-track-text">Processing</div>
+        </div>
+        <div class="order-track-step {% if current_step > 3 %}completed{% elif current_step == 3 %}active{% endif %}">
+          <div class="order-track-icon"><i class="bi bi-truck"></i></div>
+          <div class="order-track-text">Shipped</div>
+        </div>
+        <div class="order-track-step {% if current_step >= 4 %}completed active{% endif %}">
+          <div class="order-track-icon"><i class="bi bi-house-door-fill"></i></div>
+          <div class="order-track-text">Delivered</div>
+        </div>
+        {% endif %}
+      </div>
+      <hr>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <h6 class="fw-semibold">Product</h6>
+          <p class="mb-1">{{ order.product_name }}</p>
+          <p class="mb-1">Quantity: {{ order.quantity }}</p>
+          <p class="mb-1">Unit Price: ₹{{ order.price }}</p>
+          <p class="mb-1">Subtotal: ₹{{ (order.price * order.quantity)|round(2) }}</p>
+          <p class="mb-1">Delivery Charges: ₹{{ "{:,.2f}".format(order.delivery_fee) }}</p>
+          <p class="mb-1">Platform Fee: ₹{{ "{:,.2f}".format(order.platform_fee) }}</p>
+          {% if order.handling_fee > 0 %}<p class="mb-1">Handling Fee: ₹{{ "{:,.2f}".format(order.handling_fee) }}</p>{% endif %}
+          {% if order.discount_amount and order.discount_amount > 0 %}<p class="mb-1">Discount ({{ order.coupon_code }}): <span class="text-success">-₹{{ "{:,.2f}".format(order.discount_amount) }}</span></p>{% endif %}
+          <hr class="my-2">
+          <p class="mb-1 fw-bold text-primary fs-5">Total Paid: ₹{{ "{:,.2f}".format(order.total_amount) }}</p>
+        </div>
+        <div class="col-md-6">
+          <h6 class="fw-semibold">Delivery Details</h6>
+          <p class="mb-1">{{ order.address|replace('\n','<br>')|safe }}</p>
+          <p class="mb-1">{{ order.phone }} • {{ order.email }}</p>
+          <p class="mb-1">ETA: {{ order.estimated_delivery_date.strftime('%d %b %Y') }}</p>
+        </div>
+      </div>
+      <hr>
+      <p><strong>Payment Method:</strong> {{ order.payment_method }}</p>
+      
+      {% if order.status == 'Delivered' %}
+        {% if order.user_rating %}
+        <div class="mt-4 p-4 bg-light rounded-4 border border-success border-opacity-25">
+          <h6 class="fw-bold text-success mb-2"><i class="bi bi-star-fill me-2"></i>Your Rating & Review</h6>
+          <div class="text-warning mb-2 fs-5">
+            {% for i in range(1, 6) %}<i class="bi bi-star{% if i <= order.user_rating %}-fill{% endif %}"></i>{% endfor %}
+          </div>
+          {% if order.user_review %}
+          <p class="mb-0 small text-muted fst-italic">"{{ order.user_review }}"</p>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="mt-4 p-4 bg-light rounded-4 border shadow-sm">
+          <h6 class="fw-bold mb-3"><i class="bi bi-pencil-square text-primary me-2"></i>Rate Your Experience</h6>
+          <form action="{{ url_for('submit_review', order_id=order.order_id) }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-muted mb-2">Overall Rating</label>
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <div class="star-rating-ui d-flex gap-1 fs-3 text-warning">
+                  <i class="bi bi-star star-item" style="cursor: pointer; transition: 0.2s;" data-value="1"></i>
+                  <i class="bi bi-star star-item" style="cursor: pointer; transition: 0.2s;" data-value="2"></i>
+                  <i class="bi bi-star star-item" style="cursor: pointer; transition: 0.2s;" data-value="3"></i>
+                  <i class="bi bi-star star-item" style="cursor: pointer; transition: 0.2s;" data-value="4"></i>
+                  <i class="bi bi-star star-item" style="cursor: pointer; transition: 0.2s;" data-value="5"></i>
+                </div>
+                <span class="small fw-bold text-muted ms-2" id="ratingText">Rate your item</span>
+              </div>
+              <input type="hidden" name="rating" id="ratingInput">
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-muted">Write a Review (Optional)</label>
+              <textarea name="review_text" class="form-control shadow-sm border-0" rows="3" placeholder="Tell us what you liked or disliked about the product and delivery..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary px-4 fw-semibold rounded-pill"><i class="bi bi-send-fill me-2"></i>Submit Review</button>
+          </form>
+        </div>
+        {% endif %}
+      {% endif %}
+
+      <div class="d-flex align-items-center gap-2 mt-4 flex-wrap">
+        <a href="{{ url_for('order_invoice', order_id=order.order_id, download=1) }}" class="btn btn-outline-secondary">
+          <i class="bi bi-receipt me-1"></i>Download Invoice
+        </a>
+        {% if order.status in ['Placed', 'Processing'] %}
+        <form action="{{ url_for('cancel_order', order_id=order.order_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to cancel this order? This action cannot be undone.');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+          <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle me-1"></i>Cancel Order</button>
+        </form>
+        {% endif %}
+        <a href="{{ url_for('orders') }}" class="btn btn-link text-decoration-none">Back to My Orders</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const stars = document.querySelectorAll('.star-item');
+    const ratingInput = document.getElementById('ratingInput');
+    const ratingText = document.getElementById('ratingText');
+    const texts = ["Rate your item", "Terrible 😞", "Poor 😕", "Average 😐", "Very Good 😊", "Excellent 😍"];
+
+    let currentRating = 0;
+
+    if (stars.length > 0) {
+      stars.forEach(star => {
+        star.addEventListener('mouseover', function() {
+          const val = parseInt(this.getAttribute('data-value'));
+          updateStars(val);
+          if(ratingText) ratingText.textContent = texts[val];
+        });
+
+        star.addEventListener('mouseout', function() {
+          updateStars(currentRating);
+          if(ratingText) ratingText.textContent = texts[currentRating];
+        });
+
+        star.addEventListener('click', function() {
+          currentRating = parseInt(this.getAttribute('data-value'));
+          if(ratingInput) ratingInput.value = currentRating;
+          updateStars(currentRating);
+          if(ratingText) ratingText.textContent = texts[currentRating];
+        });
+      });
+
+      function updateStars(val) {
+        stars.forEach(star => {
+          const starVal = parseInt(star.getAttribute('data-value'));
+          if (starVal <= val) {
+            star.classList.remove('bi-star');
+            star.classList.add('bi-star-fill');
+            star.style.transform = 'scale(1.15)'; // Pop animation
+          } else {
+            star.classList.remove('bi-star-fill');
+            star.classList.add('bi-star');
+            star.style.transform = 'scale(1)';
+          }
+        });
+      }
+
+      // Prevent form submission if no rating is selected
+      const reviewForm = ratingInput.closest('form');
+      if(reviewForm) {
+        reviewForm.addEventListener('submit', function(e) {
+          if(currentRating === 0) {
+            e.preventDefault();
+            ratingText.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>Please select a star rating!</span>';
+          }
+        });
+      }
+    }
+  });
+</script>
+{% endblock %}

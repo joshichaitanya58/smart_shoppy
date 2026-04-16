@@ -1,0 +1,44 @@
+{% extends "admin/base.html" %}
+{% block title %}All Products{% endblock %}
+{% block header_title %}All Products{% endblock %}
+
+{% block content %}
+<div class="admin-card">
+  <div class="p-3 border-bottom d-flex justify-content-between align-items-center" style="background:#f8fbfe;">
+    <h6 class="fw-bold mb-0"><i class="bi bi-box-seam-fill text-success me-2"></i>Searched Products</h6>
+    <span style="background: #e2f7e9; color: #1c8b5c; font-weight: 500; padding: 0.3rem 0.8rem; border-radius: 30px; font-size: 0.85rem;">{{ products|length }} Total</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th class="ps-4">Image</th>
+          <th>Product Name</th>
+          <th>Brand</th>
+          <th>Views</th>
+          <th>Offers</th>
+          <th>Added On</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in products %}
+        <tr>
+          <td class="ps-4">
+            {% if product.image_url %}
+              <img src="{{ product.image_url }}" alt="img" style="width: 40px; height: 40px; object-fit: contain; border-radius: 8px; border: 1px solid #eee;">
+            {% else %}
+              <div style="width: 40px; height: 40px; background: #f4f7fc; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #aab8c2;"><i class="bi bi-image"></i></div>
+            {% endif %}
+          </td>
+          <td class="fw-medium text-truncate" style="max-width: 250px;" title="{{ product.name }}">{{ product.name }}</td>
+          <td class="text-muted">{{ product.brand or '-' }}</td>
+          <td><span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1 rounded-pill">{{ product.views }}</span></td>
+          <td><span class="badge bg-success bg-opacity-10 text-success px-3 py-1 rounded-pill">{{ product.offers|length }}</span></td>
+          <td class="text-muted small">{{ product.created_at.strftime('%d %b %Y') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

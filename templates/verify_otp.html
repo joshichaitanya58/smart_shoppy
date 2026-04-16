@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}Verify OTP — SmartShoppy{% endblock %}
+
+{% block content %}
+<div class="container py-5 ss-auth-page">
+  <div class="row w-100 justify-content-center">
+    <div class="col-md-6 col-lg-5 col-xl-4">
+      <div class="ss-auth-card shadow border-0 rounded-4 p-4 p-md-5 bg-white">
+        <div class="text-center mb-4">
+          <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex p-3 mb-3">
+            <i class="bi bi-shield-lock text-primary fs-1"></i>
+          </div>
+          <h3 class="fw-bold">Verify OTP</h3>
+          <p class="text-muted small">
+            {% if email %}
+              We've sent a 6-digit code to <span class="fw-medium">{{ email | mask_email }}</span>.
+            {% else %}
+              We've sent a 6-digit code to your email.
+            {% endif %}
+          </p>
+        </div>
+
+        <form method="POST" action="{{ url_for('verify_otp', action=action) }}" id="otpForm">
+          {{ form.hidden_tag() }}
+
+          <div class="mb-4">
+            {{ form.otp.label(class="form-label fw-semibold") }}
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0"><i class="bi bi-key"></i></span>
+              {{ form.otp(class="form-control form-control-lg text-center font-monospace letter-spacing-lg border-start-0", placeholder="000000", maxlength="6", autocomplete="off", inputmode="numeric", pattern="[0-9]*", autofocus=true) }}
+            </div>
+            {% for error in form.otp.errors %}
+              <div class="text-danger small mt-1"><i class="bi bi-exclamation-triangle me-1"></i>{{ error }}</div>
+            {% endfor %}
+            <div class="invalid-feedback" id="otpClientError" style="display: none;"></div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <a href="{{ url_for('login') }}" class="text-decoration-none small">
+              <i class="bi bi-arrow-left me-1"></i>Back to login
+            </a>
+            <button type="button" class="btn btn-link p-0 small text-decoration-none" id="resendBtn" onclick="resendOTP()" disabled>
+              Resend code <span id="timer" class="fw-medium">(30)</span>
+            </button>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 btn-lg rounded-3" id="submitBtn">
+            <span id="submitText">Verify & Continue</span>
+            <span id="submitSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+          </button>
+        </form>
+
+        <hr class="my-4">
+        <p class="text-center small text-muted mb-0">
+          Having trouble? <a href="#" class="text-decoration-none">Contact support</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .letter-spacing-lg {
+    letter-spacing: 0.3em;
+    font-size: 1.6rem;
+  }
+  .ss-auth-card {
+    transition: all 0.2s ease;
+  }
+  .ss-auth-card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important;
+  }
+  .input-group-text {
+    background-color: #f8f9fa;
+  }
+  .form-control:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13,110,253,0.15);
+  }
+  /* Hide number input spinners */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+</style>
+
+<script>
+  (function() {
+    // Auto‑focus the OTP field
+    const otpInput = document.getElementById('{{ form.otp.id }}');
+    if (otpInput) {
+      otpInput.focus();
+
+      // Optional: auto‑submit when 6 digits are entered
+      otpInput.addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, ''); // allow only digits
+        if (this.value.length === 6) {
+          document.getElementById('otpForm').requestSubmit(); // use requestSubmit to trigger validation
+        }
+      });
+    }
+
+    // Resend OTP countdown timer
+    let timeLeft = 30;
+    const timerSpan = document.getElementById('timer');
+    const resendBtn = document.getElementById('resendBtn');
+    const interval = setInterval(() => {
+      timeLeft -= 1;
+      if (timerSpan) timerSpan.innerText = `(${timeLeft})`;
+      if (timeLeft <= 0) {
+        clearInterval(interval);
+        if (resendBtn) {
+          resendBtn.disabled = false;
+          resendBtn.innerHTML = 'Resend code';
+        }
+      }
+    }, 1000);
+
+    // Show loading spinner on form submit
+    const form = document.getElementById('otpForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitText = document.getElementById('submitText');
+    const submitSpinner = document.getElementById('submitSpinner');
+
+    form.addEventListener('submit', function(e) {
+      if (!form.checkValidity()) {
+        e.preventDefault();
+        e.stopPropagation();
+        form.classList.add('was-validated');
+        return;
+      }
+      // Disable button and show spinner
+      submitBtn.disabled = true;
+      submitText.textContent = 'Verifying...';
+      submitSpinner.classList.remove('d-none');
+    });
+  })();
+
+  // Global function for resend (can be called from onclick)
+  function resendOTP() {
+    const resendBtn = document.getElementById('resendBtn');
+    if (resendBtn.disabled) return;
+
+    // Placeholder for actual resend logic – replace with your endpoint
+    fetch('{{ url_for("resend_otp") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: '{{ email | default("") }}' })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Reset timer
+        let timeLeft = 30;
+        const timerSpan = document.getElementById('timer');
+        resendBtn.disabled = true;
+        resendBtn.innerHTML = 'Resend code <span id="timer" class="fw-medium">(30)</span>';
+        const interval = setInterval(() => {
+          timeLeft -= 1;
+          const newTimer = document.getElementById('timer');
+          if (newTimer) newTimer.innerText = `(${timeLeft})`;
+          if (timeLeft <= 0) {
+            clearInterval(interval);
+            resendBtn.disabled = false;
+            resendBtn.innerHTML = 'Resend code';
+          }
+        }, 1000);
+        // Show a temporary success message
+        alert('A new OTP has been sent.');
+      } else {
+        alert('Failed to resend OTP. Please try again.');
+      }
+    })
+    .catch(() => alert('Network error. Please try again.'));
+  }
+</script>
+{% endblock %}

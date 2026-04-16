@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}My Dashboard — SmartShoppy{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+    <div>
+      <h4 class="fw-bold mb-1">Welcome, {{ current_user.username }} 👋</h4>
+      <p class="text-muted small mb-0">Here's everything in your SmartShoppy account</p>
+    </div>
+    <a href="{{ url_for('new_alert') }}" class="btn btn-primary">
+      <i class="bi bi-bell me-1"></i> New Price Alert
+    </a>
+  </div>
+
+  <!-- Stats -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-4">
+      <div class="ss-card ss-card-body text-center">
+        <div class="fw-bold fs-2 text-primary mb-1">{{ saved|length }}</div>
+        <div class="text-muted small text-uppercase fw-semibold" style="letter-spacing:0.04em;">Saved Products</div>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="ss-card ss-card-body text-center">
+        <div class="fw-bold fs-2 text-warning mb-1">{{ alerts|length }}</div>
+        <div class="text-muted small text-uppercase fw-semibold" style="letter-spacing:0.04em;">Price Alerts</div>
+      </div>
+    </div>
+    <div class="col-sm-3">
+      <div class="ss-card ss-card-body text-center">
+        <div class="fw-bold fs-2 text-success mb-1">{{ orders|length if orders is defined else 0 }}</div>
+        <div class="text-muted small text-uppercase fw-semibold" style="letter-spacing:0.04em;">Recent Orders</div>
+      </div>
+    </div>
+    <div class="col-sm-3">
+      <div class="ss-card ss-card-body text-center">
+        <div class="fw-bold fs-2 text-info mb-1">{{ total_orders if total_orders is defined else 0 }}</div>
+        <div class="text-muted small text-uppercase fw-semibold" style="letter-spacing:0.04em;">Total Orders</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="row g-4">
+
+    <!-- Saved Products -->
+    <div class="col-lg-6">
+      <div class="ss-card h-100">
+        <div class="ss-card-header d-flex justify-content-between">
+          <h6 class="fw-bold mb-0"><i class="bi bi-bookmark text-primary me-2"></i>Saved Products</h6>
+          {% if saved %}<span class="badge bg-primary">{{ saved|length }}</span>{% endif %}
+        </div>
+        {% if saved %}
+        <div class="list-group list-group-flush">
+          {% for item in saved[:8] %}
+          <a href="{{ url_for('product_detail', slug=item.product.slug) }}"
+             class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 border-0 border-bottom">
+            <div class="d-flex align-items-center gap-3">
+              {% if item.product.image_url %}
+              <img src="{{ item.product.image_url }}" alt="" class="ss-wishlist-img"
+                   onerror="this.style.display='none'" />
+              {% else %}
+              <div class="ss-wishlist-img-ph"><i class="bi bi-box-seam text-muted"></i></div>
+              {% endif %}
+              <div>
+                <div class="fw-medium small" style="line-height:1.3;">
+                  {{ item.product.name[:50] }}{% if item.product.name|length > 50 %}…{% endif %}
+                </div>
+                {% set prices = item.product.offers | map(attribute='price') | list %}
+                {% if prices %}
+                {% set csymbol = CURRENCY_SYMBOLS.get(item.product.offers[0].currency, '₹') if item.product.offers else '₹' %}
+                <small class="text-primary fw-semibold">{{ csymbol }}{{ "{:,.0f}".format(prices|min) }}</small>
+                {% endif %}
+              </div>
+            </div>
+            <small class="text-muted">{{ item.saved_at.strftime('%d %b') }}</small>
+          </a>
+          {% endfor %}
+          {% if saved|length > 8 %}
+          <div class="text-center py-2">
+            <small class="text-muted">+{{ saved|length - 8 }} more</small>
+          </div>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="ss-card-body text-center py-4">
+          <i class="bi bi-bookmark fs-1 text-muted d-block mb-2" style="opacity:0.3;"></i>
+          <p class="text-muted small mb-3">No saved products yet</p>
+          <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm">Start Searching</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Price Alerts -->
+    <div class="col-lg-6">
+      <div class="ss-card h-100">
+        <div class="ss-card-header d-flex justify-content-between">
+          <h6 class="fw-bold mb-0"><i class="bi bi-bell text-warning me-2"></i>Price Alerts</h6>
+          {% if alerts %}
+          <a href="{{ url_for('alerts') }}" class="small text-primary text-decoration-none">View All</a>
+          {% endif %}
+        </div>
+        {% if alerts %}
+        <div class="list-group list-group-flush">
+          {% for alert in alerts[:8] %}
+          <div class="list-group-item d-flex justify-content-between align-items-center py-3 border-0 border-bottom">
+            <div class="flex-grow-1 min-w-0">
+              <a href="{{ url_for('product_detail', slug=alert.product.slug) }}"
+                 class="fw-medium small text-decoration-none d-block mb-1" style="color:var(--ss-text);line-height:1.3;">
+                {{ alert.product.name[:50] }}{% if alert.product.name|length > 50 %}…{% endif %}
+              </a>
+              <small class="text-muted">Target: <span class="text-success fw-semibold">₹{{ "{:,.0f}".format(alert.target_price) }}</span></small>
+            </div>
+            <span class="badge ms-3 {% if alert.triggered %}bg-success text-white{% else %}bg-primary text-white{% endif %}">
+              {% if alert.triggered %}<i class="bi bi-check me-1"></i>Hit{% else %}<i class="bi bi-clock me-1"></i>Active{% endif %}
+            </span>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="ss-card-body text-center py-4">
+          <i class="bi bi-bell-slash fs-1 text-muted d-block mb-2" style="opacity:0.3;"></i>
+          <p class="text-muted small mb-3">No price alerts set</p>
+          <a href="{{ url_for('new_alert') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i> Create Alert
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Recent Orders -->
+  <div class="row g-4 mt-3">
+    <div class="col-12">
+      <div class="ss-card">
+        <div class="ss-card-header d-flex justify-content-between align-items-center">
+          <h6 class="fw-bold mb-0"><i class="bi bi-card-checklist text-info me-2"></i>Recent Orders</h6>
+          <a href="{{ url_for('orders') }}" class="small text-primary">View All Orders</a>
+        </div>
+        {% if orders %}
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Product</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>ETA</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for order in orders %}
+              <tr>
+                <td>{{ order.order_id }}</td>
+                <td>{{ order.product_name[:50] }}{% if order.product_name|length > 50 %}...{% endif %}</td>
+                <td><span class="badge {% if order.status=='Placed' %}bg-secondary{% elif order.status=='Processing' %}bg-primary{% elif order.status=='Shipped' %}bg-info text-dark{% elif order.status=='Delivered' %}bg-success{% else %}bg-light text-dark{% endif %}">{{ order.status }}</span></td>
+                <td>₹{{ order.total_amount|round(2) }}</td>
+                <td>{{ order.estimated_delivery_date.strftime('%d %b %Y') }}</td>
+                <td><a href="{{ url_for('order_detail', order_id=order.order_id) }}" class="btn btn-sm btn-outline-primary">View</a></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="ss-card-body text-center py-4">
+          <p class="text-muted mb-0">No orders placed yet.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

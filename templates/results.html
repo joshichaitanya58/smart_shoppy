@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% block title %}Results for "{{ query }}" — SmartShoppy{% endblock %}
+
+{% block nav_search %}
+<form class="ss-nav-search mx-auto d-flex" action="{{ url_for('index') }}" method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}" />
+  <input type="text" name="query" class="form-control ss-nav-input" placeholder="Search products..."
+    value="{{ query }}" style="border-radius:8px 0 0 8px;border-right:none;" />
+  <button type="submit" class="btn btn-primary" style="border-radius:0 8px 8px 0;">
+    <i class="bi bi-search"></i>
+  </button>
+</form>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row g-3">
+
+    <!-- Filter Sidebar -->
+    <div class="col-lg-3">
+      <div class="ss-filter-bar sticky-top" style="top:80px; z-index: 10; max-height: calc(100vh - 100px); overflow-y: auto;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-semibold mb-0"><i class="bi bi-sliders me-2 text-primary"></i>Filters</h6>
+          <a href="{{ url_for('results', q=query) }}" class="small text-muted text-decoration-none">Clear All</a>
+        </div>
+
+        <form method="GET" action="{{ url_for('results') }}" id="filter-form">
+          <input type="hidden" name="q" value="{{ query }}">
+
+          <!-- Sort -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-muted text-uppercase">Sort By</label>
+            <select class="form-select form-select-sm" name="sort_by" onchange="document.getElementById('filter-form').submit()">
+              <option value="relevance" {% if request.args.get('sort_by', 'relevance')=='relevance' %}selected{% endif %}>Relevance</option>
+              <option value="price_low" {% if request.args.get('sort_by')=='price_low' %}selected{% endif %}>Price: Low → High</option>
+              <option value="price_high" {% if request.args.get('sort_by')=='price_high' %}selected{% endif %}>Price: High → Low</option>
+              <option value="rating" {% if request.args.get('sort_by')=='rating' %}selected{% endif %}>Rating</option>
+              <option value="popularity" {% if request.args.get('sort_by')=='popularity' %}selected{% endif %}>Popularity</option>
+            </select>
+          </div>
+
+          <!-- Price Range -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-muted text-uppercase">Price Range (₹)</label>
+            <div class="row g-2">
+              <div class="col-6">
+                <input type="number" class="form-control form-control-sm" name="min_price"
+                  placeholder="Min" value="{{ request.args.get('min_price', '') }}" min="0">
+              </div>
+              <div class="col-6">
+                <input type="number" class="form-control form-control-sm" name="max_price"
+                  placeholder="Max" value="{{ request.args.get('max_price', '') }}" min="0">
+              </div>
+            </div>
+          </div>
+
+          <!-- Sellers -->
+          {% if sellers %}
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-muted text-uppercase">Sellers</label>
+            {% for seller in sellers %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="seller" value="{{ seller }}"
+                id="seller_{{ loop.index }}" {% if seller in selected_sellers %}checked{% endif %}>
+              <label class="form-check-label small" for="seller_{{ loop.index }}">{{ seller }}</label>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <!-- Brands -->
+          {% if brands %}
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-muted text-uppercase">Brands</label>
+            {% for brand in brands[:8] %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="brand" value="{{ brand }}"
+                id="brand_{{ loop.index }}" {% if brand in selected_brands %}checked{% endif %}>
+              <label class="form-check-label small" for="brand_{{ loop.index }}">{{ brand }}</label>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <!-- Rating -->
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-muted text-uppercase">Min Rating</label>
+            <select class="form-select form-select-sm" name="min_rating">
+              <option value="0" {% if not request.args.get('min_rating') or request.args.get('min_rating')=='0' %}selected{% endif %}>Any Rating</option>
+              <option value="3" {% if request.args.get('min_rating')=='3' %}selected{% endif %}>3★ &amp; above</option>
+              <option value="4" {% if request.args.get('min_rating')=='4' %}selected{% endif %}>4★ &amp; above</option>
+              <option value="4.5" {% if request.args.get('min_rating')=='4.5' %}selected{% endif %}>4.5★ &amp; above</option>
+            </select>
+          </div>
+
+          <!-- In Stock -->
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="in_stock_only" value="on"
+              id="inStock" {% if request.args.get('in_stock_only')=='on' %}checked{% endif %}>
+            <label class="form-check-label small" for="inStock">In Stock Only</label>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-sm w-100">
+            <i class="bi bi-funnel me-1"></i> Apply Filters
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Results Main -->
+    <div class="col-lg-9">
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+          <h5 class="fw-bold mb-0">Results for "<span class="text-primary">{{ query }}</span>"</h5>
+        </div>
+        <span class="badge bg-light text-muted border">{{ items|length }} offer{{ 's' if items|length != 1 }}</span>
+      </div>
+
+      {% if items %}
+      <div class="row g-3">
+        {% for item in items %}
+        <div class="col-sm-6 col-xl-4">
+          <div class="ss-product-card h-100">
+            {% if item.is_best %}
+            <span class="badge bg-success position-absolute top-0 start-0 m-2" style="z-index:2;font-size:0.68rem;">
+              <i class="bi bi-trophy me-1"></i>Best Deal
+            </span>
+            {% endif %}
+
+            <!-- Quick Save -->
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('save_product', product_id=item.product.id) }}"
+               class="ss-quick-wishlist" title="Save Product">
+              <i class="bi bi-bookmark"></i>
+            </a>
+            {% endif %}
+
+            <div class="ss-product-img-wrap">
+              {% if item.product.image_url %}
+              <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}" class="ss-product-img"
+                   onerror="this.parentElement.innerHTML='<div class=\'ss-img-ph\'><i class=\'bi bi-box-seam fs-2 text-muted\'></i></div>'" />
+              {% else %}
+              <div class="ss-img-ph"><i class="bi bi-box-seam fs-2 text-muted"></i></div>
+              {% endif %}
+            </div>
+
+            <div class="ss-product-body p-3">
+              <p class="ss-product-name mb-2">{{ item.product.name }}</p>
+
+              <!-- Rating -->
+              {% if item.offer.rating and item.offer.rating > 0 %}
+              <div class="d-flex align-items-center gap-1 mb-2">
+                {% for i in range(1,6) %}
+                  {% if i <= item.offer.rating|int %}
+                    <i class="bi bi-star-fill text-warning" style="font-size:0.7rem;"></i>
+                  {% elif item.offer.rating - i + 1 >= 0.5 %}
+                    <i class="bi bi-star-half text-warning" style="font-size:0.7rem;"></i>
+                  {% else %}
+                    <i class="bi bi-star text-muted" style="font-size:0.7rem;"></i>
+                  {% endif %}
+                {% endfor %}
+                {% if item.offer.review_count %}
+                <small class="text-muted">({{ "{:,.0f}".format(item.offer.review_count) }})</small>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              <!-- Availability -->
+              <span class="badge {% if 'In Stock' in (item.offer.availability or '') %}bg-success{% else %}bg-warning text-dark{% endif %} bg-opacity-15 border mb-2" style="font-size:0.7rem;">
+                <i class="bi bi-circle-fill me-1" style="font-size:5px;"></i>
+                {{ item.offer.availability or 'Unknown' }}
+              </span>
+
+              <!-- Price and Seller -->
+              <div class="d-flex justify-content-between align-items-center mt-2">
+                {% set csymbol = CURRENCY_SYMBOLS.get(item.offer.currency, '₹') %}
+                <span class="ss-price">{{ csymbol }}{{ "{:,.0f}".format(item.offer.price) }}</span>
+                <small class="text-muted d-flex align-items-center">
+                  via {{ item.offer.seller }}
+                  {% set is_trusted = namespace(value=false) %}
+                  {% set seller_lower = item.offer.seller|lower %}
+                  {% for tp in TRUSTED_PLATFORMS %}
+                    {% if tp in seller_lower %}{% set is_trusted.value = true %}{% endif %}
+                  {% endfor %}
+                  {% if is_trusted.value %}
+                    <i class="bi bi-patch-check-fill text-primary ms-1" title="Verified Trusted Platform" style="font-size:0.85rem;"></i>
+                  {% endif %}
+                </small>
+              </div>
+
+              <!-- Actions -->
+              <div class="d-flex gap-2 mt-3">
+                {% if item.offer.url %}
+                <a href="{{ item.offer.url }}" target="_blank" rel="noopener"
+                   class="btn btn-primary btn-sm flex-fill">
+                  Buy from Seller <i class="bi bi-box-arrow-up-right ms-1"></i>
+                </a>
+                {% endif %}
+                <a href="{{ url_for('checkout', offer_id=item.offer.id) }}" class="btn btn-success btn-sm flex-fill">
+                  Order Now <i class="bi bi-bag-plus ms-1"></i>
+                </a>
+                <a href="{{ url_for('product_detail', slug=item.product.slug) }}"
+                   class="btn btn-outline-secondary btn-sm" title="Price History">
+                  <i class="bi bi-graph-up"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% else %}
+      <div class="text-center py-5">
+        <i class="bi bi-search fs-1 text-muted d-block mb-3" style="opacity:0.3;"></i>
+        <h5 class="fw-semibold text-muted mb-1">No results match your filters</h5>
+        <p class="text-muted small">Try adjusting your price range, sellers, or other filters.</p>
+        <a href="{{ url_for('results', q=query) }}" class="btn btn-outline-primary mt-2">
+          <i class="bi bi-x me-1"></i> Clear All Filters
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

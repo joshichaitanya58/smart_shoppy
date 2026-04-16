@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Admin Panel{% endblock %} - SmartShoppy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f4f7fc;
+      margin: 0;
+    }
+
+    /* ----- SIDEBAR (white + light blue accents) ----- */
+    .admin-sidebar {
+      width: 260px;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      background: #ffffff;
+      border-right: 1px solid #d9e6f2;
+      padding-top: 1.5rem;
+      z-index: 1000;
+      box-shadow: 4px 0 12px rgba(0, 40, 80, 0.03);
+    }
+
+    .admin-sidebar .brand {
+      padding: 0 1.5rem 1.2rem;
+      border-bottom: 1px solid #e4edf5;
+      margin-bottom: 1rem;
+    }
+
+    .admin-sidebar .brand h4 {
+      font-weight: 700;
+      color: #1a3b5d;
+    }
+
+    .admin-sidebar .brand h4 i {
+      color: #3f8cff;
+    }
+
+    .admin-sidebar .brand .badge {
+      background: #e1f0ff;
+      color: #2b6ed7;
+      border: none;
+      font-weight: 500;
+      padding: 0.4rem 0.8rem;
+    }
+
+    .admin-sidebar a {
+      color: #3f506e;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      padding: 0.8rem 1.5rem;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: all 0.15s;
+      border-left: 4px solid transparent;
+    }
+
+    .admin-sidebar a i {
+      width: 1.75rem;
+      font-size: 1.2rem;
+      color: #7f8fa4;
+    }
+
+    .admin-sidebar a:hover {
+      background: #f2f9ff;
+      color: #1a3b5d;
+      border-left-color: #9ac7ff;
+    }
+
+    .admin-sidebar a.active {
+      background: #e8f2ff;
+      color: #1e5fd9;
+      border-left: 4px solid #1e5fd9;
+      font-weight: 600;
+    }
+
+    .admin-sidebar a.active i {
+      color: #1e5fd9;
+    }
+
+    .admin-sidebar .logout {
+      position: absolute;
+      bottom: 1.5rem;
+      width: 100%;
+    }
+
+    /* ----- MAIN CONTENT AREA ----- */
+    .admin-content {
+      margin-left: 260px;
+      min-height: 100vh;
+      background-color: #f4f7fc;
+    }
+
+    .admin-header {
+      height: 70px;
+      background: #ffffff;
+      border-bottom: 1px solid #d9e6f2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      box-shadow: 0 2px 6px rgba(0, 30, 60, 0.02);
+    }
+
+    .admin-header h5 {
+      font-weight: 600;
+      color: #1e3a5f;
+      margin: 0;
+    }
+
+    .admin-header .user-dropdown {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: #f2f9ff;
+      padding: 0.3rem 1rem 0.3rem 0.8rem;
+      border-radius: 30px;
+      border: 1px solid #d2e3fc;
+    }
+
+    .admin-header .user-dropdown .avatar {
+      background: #1e5fd9;
+      color: white;
+      width: 34px;
+      height: 34px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .admin-header .user-dropdown span {
+      font-weight: 500;
+      color: #1e3a5f;
+    }
+
+    /* ----- CARD & UTILITY STYLES ----- */
+    .admin-card {
+      background: #ffffff;
+      border-radius: 18px;
+      border: 1px solid #e2edf9;
+      box-shadow: 0 6px 14px rgba(0, 35, 70, 0.02);
+      transition: box-shadow 0.2s;
+    }
+
+    .admin-card:hover {
+      box-shadow: 0 12px 24px -8px rgba(20, 80, 150, 0.08);
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+    }
+
+    /* light blue background for icons */
+    .bg-soft-primary {
+      background-color: #e8f2ff;
+      color: #1e5fd9;
+    }
+
+    .bg-soft-success {
+      background-color: #e2f7e9;
+      color: #1c8b5c;
+    }
+
+    .bg-soft-warning {
+      background-color: #fff2dd;
+      color: #c07c1a;
+    }
+
+    .bg-soft-info {
+      background-color: #ddf2fb;
+      color: #1a7c9e;
+    }
+
+    .bg-soft-danger {
+      background-color: #ffe6e8;
+      color: #c23b3b;
+    }
+
+    .bg-soft-secondary {
+      background-color: #e9ecf3;
+      color: #4e5c6e;
+    }
+
+    /* table styles */
+    .table thead th {
+      background-color: #f8fbfe;
+      color: #4d627a;
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom-width: 1px;
+      border-color: #d9e6f2;
+    }
+
+    .table tbody td {
+      color: #1e2f44;
+      vertical-align: middle;
+      border-color: #e7f0f8;
+    }
+
+    .badge-soft-primary {
+      background: #e1f0ff;
+      color: #1e5fd9;
+      font-weight: 500;
+      padding: 0.3rem 0.8rem;
+      border-radius: 30px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- SIDEBAR -->
+  <div class="admin-sidebar">
+    <div class="brand">
+      <h4 class="mb-1"><i class="bi bi-lightning-charge-fill me-2"></i>Smart<span style="color:#1e5fd9;">Shoppy</span>
+      </h4>
+      <span class="badge">Admin Portal</span>
+    </div>
+
+    <a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+      <i class="bi bi-grid-1x2-fill"></i> Dashboard
+    </a>
+    <a href="{{ url_for('analytics') }}" class="{% if request.endpoint == 'analytics' %}active{% endif %}">
+      <i class="bi bi-bar-chart-fill"></i> Analytics
+    </a>
+    <a href="{{ url_for('admin_users') }}" class="{% if request.endpoint == 'admin_users' %}active{% endif %}">
+      <i class="bi bi-people-fill"></i> All Users
+    </a>
+    <a href="{{ url_for('admin_products') }}" class="{% if request.endpoint == 'admin_products' %}active{% endif %}">
+      <i class="bi bi-box-seam-fill"></i> All Products
+    </a>
+    <a href="{{ url_for('admin_orders') }}" class="{% if request.endpoint == 'admin_orders' %}active{% endif %}">
+      <i class="bi bi-cart-check-fill"></i> Manage Orders
+    </a>
+    <!-- Main Admin Only: Pending Admin Requests Aside Component -->
+    {% if current_user.email == 'joshichaitanya354@gmail.com' %}
+    <div class="card shadow-sm border-warning mb-4">
+      <div
+        class="card-header bg-warning bg-opacity-25 border-warning text-dark fw-bold d-flex justify-content-between align-items-center">
+        <div><i class="bi bi-shield-lock-fill text-warning me-2"></i>Pending Admin Requests</div>
+        <span class="badge bg-warning text-dark rounded-pill">{{ pending_admins|length }}</span>
+      </div>
+      <div class="card-body p-0">
+        {% if pending_admins %}
+        <ul class="list-group list-group-flush">
+          {% for admin in pending_admins %}
+          <li class="list-group-item d-flex justify-content-between align-items-center p-3">
+            <div>
+              <h6 class="mb-0 fw-semibold text-dark">{{ admin.username }}</h6>
+              <small class="text-muted"><i class="bi bi-envelope me-1"></i>{{ admin.email }}</small>
+            </div>
+            <div class="d-flex gap-2">
+              <form action="{{ url_for('approve_admin', user_id=admin.id) }}" method="POST" class="m-0">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+                <button type="submit" class="btn btn-sm btn-success shadow-sm" title="Approve Request">
+                  <i class="bi bi-check-lg"></i>
+                </button>
+              </form>
+              <form action="{{ url_for('reject_admin', user_id=admin.id) }}" method="POST" class="m-0"
+                onsubmit="return confirm('Are you sure you want to reject and delete this admin account?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+                <button type="submit" class="btn btn-sm btn-danger shadow-sm" title="Reject Request">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </form>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+          <i class="bi bi-check-circle fs-3 d-block mb-2 opacity-50"></i>
+          <p class="mb-0 small fw-medium">No pending requests right now.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+
+    <div class="logout">
+      <a href="{{ url_for('logout') }}" style="border-left-color: transparent;">
+        <i class="bi bi-box-arrow-left"></i> Logout
+      </a>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="admin-content">
+    <div class="admin-header">
+      <h5>{% block header_title %}Overview{% endblock %}</h5>
+      <div class="user-dropdown dropdown">
+        <a href="#" class="d-flex align-items-center text-decoration-none" id="adminUserDropdown"
+          data-bs-toggle="dropdown" aria-expanded="false">
+          <div class="avatar">{{ current_user.username[0]|upper }}</div>
+          <span>{{ current_user.username }}</span>
+          <i class="bi bi-chevron-down ms-2 small"></i>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" aria-labelledby="adminUserDropdown">
+          <li>
+            <h6 class="dropdown-header">{{ current_user.username }}</h6>
+          </li>
+          <li>
+            <hr class="dropdown-divider">
+          </li>
+          <li><a class="dropdown-item" href="{{ url_for('admin_settings') }}"><i
+                class="bi bi-gear me-2"></i>Settings</a></li>
+          <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i
+                class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="p-4">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      {% for category, message in messages %}
+      <div
+        class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show border-0 shadow-sm">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+      {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

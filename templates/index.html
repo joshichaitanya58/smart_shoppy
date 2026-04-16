@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+{% block title %}SmartShoppy — Compare Prices Across All Platforms{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="ss-hero">
+  <div class="container">
+    <div class="row justify-content-center text-center">
+      <div class="col-lg-8">
+        <h1 class="ss-hero-title fw-bold mb-3">
+          Find the Best Price,<br />
+          <span class="text-primary">Every Time You Shop</span>
+        </h1>
+        <p class="text-muted fs-5 mb-4">Compare prices across Amazon, Flipkart, eBay, Myntra and 10+ global retailers.
+        </p>
+
+        <!-- Search Card -->
+        <div class="ss-search-card shadow-sm">
+          <!-- Tabs -->
+          <div class="ss-search-tabs">
+            <button class="ss-tab active" data-tab="text">
+              <i class="bi bi-search me-1"></i> Product Name
+            </button>
+            <button class="ss-tab" data-tab="url">
+              <i class="bi bi-link-45deg me-1"></i> Product URL
+            </button>
+          </div>
+
+          <!-- Main Form -->
+          <form action="{{ url_for('index') }}" method="POST" id="mainSearchForm">
+            {{ form.hidden_tag() }}
+            <!-- No hidden country field -->
+
+            <!-- Text Search Tab -->
+            <div class="ss-tab-panel active" id="tab-text">
+              <div class="ss-search-row">
+                <div class="ss-input-wrap flex-grow-1">
+                  <i class="bi bi-search ss-input-icon"></i>
+                  <input type="text" name="query" id="searchInput" class="ss-search-input"
+                    placeholder="Search iPhone 15, Samsung TV, Nike Air Max..." autocomplete="off"
+                    value="{{ form.query.data or '' }}" />
+                  <div class="ss-suggestions" id="searchSuggestions"></div>
+                </div>
+                <button type="submit" class="btn btn-primary ss-search-btn">
+                  <i class="bi bi-search me-1"></i> Search
+                </button>
+              </div>
+            </div>
+
+            <!-- URL Search Tab -->
+            <div class="ss-tab-panel" id="tab-url">
+              <div class="ss-search-row">
+                <div class="ss-input-wrap flex-grow-1">
+                  <i class="bi bi-link-45deg ss-input-icon"></i>
+                  <input type="url" name="query" id="urlInput" class="ss-search-input"
+                    placeholder="Paste Amazon, Flipkart, or any product URL..." disabled />
+                </div>
+                <button type="submit" class="btn btn-primary ss-search-btn">
+                  <i class="bi bi-arrow-right me-1"></i> Compare
+                </button>
+              </div>
+            </div>
+
+
+
+          </form>
+        </div>
+
+        <!-- Trust Badges -->
+        <div class="ss-stats-row mt-4">
+          <div class="ss-stat"><span class="fw-bold text-primary">10+</span><br /><small
+              class="text-muted">Retailers</small></div>
+          <div class="ss-stat-divider"></div>
+          <div class="ss-stat"><span class="fw-bold text-primary">AI-Powered</span><br /><small
+              class="text-muted">Search</small></div>
+          <div class="ss-stat-divider"></div>
+          <div class="ss-stat"><span class="fw-bold text-primary">Live</span><br /><small
+              class="text-muted">Prices</small></div>
+          <div class="ss-stat-divider"></div>
+          <div class="ss-stat"><span class="fw-bold text-primary">Free</span><br /><small
+              class="text-muted">Always</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Platform Logos -->
+<section class="ss-platforms py-4">
+  <div class="container">
+    <p class="text-center text-muted small mb-3">Compare prices from top Indian &amp; global stores</p>
+    <div class="ss-platform-logos">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/200px-Amazon_logo.svg.png"
+        alt="Amazon" class="ss-platform-logo" />
+      <img
+        src="https://upload.wikimedia.org/wikipedia/commons/7/71/The_Flipkart_Logo_-_from_Official_Website.png"
+        alt="Flipkart" class="ss-platform-logo" />
+      <img src="https://upload.wikimedia.org/wikipedia/commons/b/bc/Myntra_Logo.png" alt="Myntra"
+        class="ss-platform-logo" />
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/EBay_logo.svg/200px-EBay_logo.svg.png"
+        alt="eBay" class="ss-platform-logo" />
+      <div class="d-inline-flex align-items-center justify-content-center rounded-pill shadow-sm bg-white text-secondary ms-md-3 mt-2 mt-md-0" style="padding: 0.5rem 1.25rem; font-size: 0.9rem; font-weight: 500; border: 1px solid #dee2e6;">
+        <span class="text-primary fw-bold me-1">+10</span> More Stores
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Trending Products -->
+{% if trending %}
+<section class="py-5">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+      <div>
+        <h2 class="fw-bold mb-1 fs-4"><i class="bi bi-fire text-danger me-2"></i>Trending Now</h2>
+        <p class="text-muted small mb-0">Most searched products today</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('trending_products') }}" class="btn btn-outline-secondary btn-sm">
+          See More <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+        <a href="{{ url_for('compare') }}" class="btn btn-outline-primary btn-sm d-none d-sm-inline-block">
+          Compare Side-by-Side <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+    </div>
+    <div class="row g-3">
+      {% for product in trending %}
+      <div class="col-6 col-md-4 col-lg-2">
+        <a href="{{ url_for('product_detail', slug=product.slug) }}" class="text-decoration-none">
+          <div class="ss-trending-card h-100 position-relative shadow-sm border-0 bg-white" style="border-radius: 16px;">
+            <!-- Rank Badge -->
+            <span class="badge bg-danger position-absolute top-0 start-0 m-2 z-2 rounded-pill px-2 py-1 shadow-sm" style="font-size: 0.7rem;">
+              <i class="bi bi-fire me-1"></i>#{{ loop.index }}
+            </span>
+
+            <!-- Image Section -->
+            <div class="p-3 bg-white d-flex align-items-center justify-content-center" style="height: 160px; border-radius: 16px 16px 0 0;">
+              {% if product.image_url %}
+              <img src="{{ product.image_url }}" alt="{{ product.name }}" class="w-100 h-100" style="object-fit: contain;"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" loading="lazy" />
+              <div class="text-muted" style="display:none;"><i class="bi bi-bag fs-1 opacity-25"></i></div>
+              {% else %}
+              <div class="text-muted"><i class="bi bi-bag fs-1 opacity-25"></i></div>
+              {% endif %}
+            </div>
+
+            <!-- Content Section -->
+            <div class="p-3 d-flex flex-column" style="flex-grow: 1; background-color: var(--ss-bg); border-radius: 0 0 16px 16px; border-top: 1px solid var(--ss-border);">
+              <p class="text-dark fw-semibold mb-2 text-truncate-2" style="font-size: 0.85rem; line-height: 1.4;">
+                {{ product.name }}
+              </p>
+
+              {% if product.is_refurbished %}
+                <span class="badge bg-warning bg-opacity-25 text-dark border border-warning border-opacity-50 mb-2 d-inline-block" style="width: fit-content; font-size: 0.65rem;">Refurbished</span>
+              {% endif %}
+
+              <div class="mt-auto">
+                {% set prices = product.offers | map(attribute='price') | list %}
+                {% if prices %}
+                {% set csymbol = CURRENCY_SYMBOLS.get(product.offers[0].currency, '₹') if product.offers else '₹' %}
+                <div class="d-flex align-items-baseline gap-1 mt-1">
+                  <span class="text-muted" style="font-size: 0.7rem;">from</span>
+                  <span class="text-primary fw-bold" style="font-size: 1.1rem;">{{ csymbol }}{{ "{:,.0f}".format(prices | min) }}</span>
+                </div>
+                {% else %}
+                <div class="mt-1">
+                  <span class="text-muted" style="font-size: 0.75rem;">
+                    <i class="bi bi-eye me-1"></i>{{ product.views or 0 }} views
+                  </span>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- RECENT SEARCHES: Only shows if user is logged in & has searched for items -->
+{% if current_user.is_authenticated and recent_products %}
+<section class="py-5 bg-white border-top">
+  <div class="container">
+    <h3 class="mb-4 fw-bold"><i class="bi bi-clock-history text-primary me-2"></i> Your Recent Searches</h3>
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-6 g-3">
+      {% for product in recent_products %}
+      <div class="col">
+        <a href="{{ url_for('product_detail', slug=product.slug) }}" class="text-decoration-none">
+          <div class="ss-trending-card h-100">
+            <div class="ss-trending-img-ph">
+              {% if product.image_url %}
+              <img src="{{ product.image_url }}" alt="{{ product.name }}" class="ss-trending-img">
+              {% else %}
+              <i class="bi bi-image text-muted fs-1"></i>
+              {% endif %}
+            </div>
+            <div class="p-2 text-center border-top">
+              <h6 class="ss-trending-name m-0">{{ product.name }}</h6>
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+
+<!-- Features Section -->
+<section class="py-5">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fw-bold fs-3">Why Choose SmartShoppy?</h2>
+      <p class="text-muted">Everything you need to shop smarter and save more</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="ss-feature-card text-center p-4 h-100">
+          <div class="ss-feature-icon mb-3"><i class="bi bi-graph-down-arrow text-primary fs-2"></i></div>
+          <h5 class="fw-semibold mb-2">Real-time Price Comparison</h5>
+          <p class="text-muted small mb-0">See live prices from 10+ global platforms side-by-side. Always know you're
+            getting the best deal.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="ss-feature-card text-center p-4 h-100">
+          <div class="ss-feature-icon mb-3"><i class="bi bi-bell text-warning fs-2"></i></div>
+          <h5 class="fw-semibold mb-2">Price Drop Alerts</h5>
+          <p class="text-muted small mb-0">Set your target price and get email notifications the moment prices drop.
+            Never miss a deal.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="ss-feature-card text-center p-4 h-100">
+          <div class="ss-feature-icon mb-3"><i class="bi bi-bookmark text-success fs-2"></i></div>
+          <h5 class="fw-semibold mb-2">Save &amp; Track Products</h5>
+          <p class="text-muted small mb-0">Save products you love. Track price history and buy at the perfect moment.
+          </p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="ss-feature-card text-center p-4 h-100">
+          <div class="ss-feature-icon mb-3"><i class="bi bi-funnel text-danger fs-2"></i></div>
+          <h5 class="fw-semibold mb-2">Smart Filtering</h5>
+          <p class="text-muted small mb-0">Easily narrow down search results by price range, brand, seller, ratings, and stock availability.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="ss-feature-card text-center p-4 h-100">
+          <div class="ss-feature-icon mb-3"><i class="bi bi-bar-chart text-primary fs-2"></i></div>
+          <h5 class="fw-semibold mb-2">Price History</h5>
+          <p class="text-muted small mb-0">Track how prices change over time. Know the perfect moment to buy with
+            charts.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA for non-logged-in users -->
+{% if not current_user.is_authenticated %}
+<section class="ss-cta py-5">
+  <div class="container text-center">
+    <h2 class="fw-bold mb-2">Start Saving Today</h2>
+    <p class="text-muted mb-4">Create a free account to access saved products, price alerts and more.</p>
+    <div class="d-flex gap-3 justify-content-center flex-wrap">
+      <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg px-4">
+        <i class="bi bi-person-plus me-2"></i>Create Free Account
+      </a>
+      <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-lg px-4">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Login
+      </a>
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

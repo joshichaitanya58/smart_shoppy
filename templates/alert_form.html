@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Create Price Alert — SmartShoppy{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+      <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4">
+          <div class="text-center mb-4">
+            <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle mb-3" style="width: 60px; height: 60px;">
+              <i class="bi bi-bell-fill fs-3 text-primary"></i>
+            </div>
+            <h4 class="fw-bold">Create Price Alert</h4>
+            <p class="text-muted small">Get notified when the price drops below your target.</p>
+          </div>
+
+          <form method="POST">
+            {{ form.hidden_tag() }}
+            
+            <div class="mb-3">
+              {{ form.product_id.label(class="form-label small fw-semibold text-muted text-uppercase") }}
+              {{ form.product_id(class="form-select") }}
+              {% for error in form.product_id.errors %}
+              <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+              {% endfor %}
+            </div>
+            
+            <div class="mb-4">
+              {{ form.target_price.label(class="form-label small fw-semibold text-muted text-uppercase") }}
+              <div class="input-group">
+                <span class="input-group-text bg-light text-muted">₹</span>
+                {{ form.target_price(class="form-control", placeholder="e.g. 15000") }}
+              </div>
+              {% for error in form.target_price.errors %}
+              <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+              {% endfor %}
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+              <i class="bi bi-plus-circle me-2"></i>Set Alert
+            </button>
+          </form>
+          
+          <div class="text-center mt-4">
+            <a href="{{ url_for('dashboard') }}" class="text-decoration-none text-muted small">
+              <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

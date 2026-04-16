@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Select Products to Compare — SmartShoppy{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="mb-4">
+    <h4 class="fw-bold mb-1"><i class="bi bi-check2-square text-primary me-2"></i>Select Products to Compare</h4>
+    <p class="text-muted small mb-0">Pick 2 or more products to compare prices, ratings and offers side by side.</p>
+  </div>
+
+  {% if products %}
+  <form method="POST" action="{{ url_for('compare') }}" id="compare-form">
+    <div class="row g-3">
+      {% for product in products %}
+      <div class="col-sm-6 col-lg-4 col-xl-3">
+        <label class="d-block h-100" for="p{{ product.id }}" style="cursor:pointer;">
+          <div class="ss-card h-100 p-3 select-card-item" id="card-{{ product.id }}">
+            <div class="d-flex align-items-start gap-2">
+              <input type="checkbox" name="product_ids" value="{{ product.id }}"
+                     id="p{{ product.id }}" class="form-check-input mt-1 flex-shrink-0"
+                     onchange="updateCount(); toggleCardStyle(this, 'card-{{ product.id }}')" />
+              <div class="flex-grow-1 min-w-0">
+                <div class="fw-semibold small mb-1" style="line-height:1.35;">
+                  {{ product.name[:70] }}{% if product.name|length > 70 %}…{% endif %}
+                </div>
+                <div class="text-muted" style="font-size:0.75rem;">
+                  {{ product.offers|length }} offer{{ 's' if product.offers|length != 1 }}
+                  {% if product.brand %} · {{ product.brand }}{% endif %}
+                </div>
+                {% set prices = product.offers | map(attribute='price') | list %}
+                {% if prices %}
+                <div class="text-primary fw-semibold small mt-1">
+                  from ₹{{ "{:,.0f}".format(prices|min) }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </label>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Sticky Compare Bar -->
+    <div class="position-sticky bottom-0 py-3 mt-4" style="z-index:100;">
+      <div class="d-flex justify-content-center">
+        <div class="d-flex align-items-center gap-3 px-4 py-3 rounded-pill shadow-lg"
+             style="background:var(--ss-card-bg);border:1px solid var(--ss-border);">
+          <span id="selected-count" class="text-muted small">0 products selected</span>
+          <button type="submit" class="btn btn-primary" id="compare-btn" disabled>
+            <i class="bi bi-arrow-left-right me-1"></i> Compare Now
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  {% else %}
+  <div class="ss-card text-center py-5">
+    <i class="bi bi-search fs-1 text-muted d-block mb-3" style="opacity:0.3;"></i>
+    <h5 class="fw-semibold text-muted mb-3">No products in database yet.</h5>
+    <a href="{{ url_for('index') }}" class="btn btn-primary">
+      <i class="bi bi-search me-1"></i> Search Products
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function updateCount() {
+  const checked = document.querySelectorAll('input[type="checkbox"]:checked').length;
+  const btn = document.getElementById('compare-btn');
+  const count = document.getElementById('selected-count');
+  count.textContent = checked + ' product' + (checked !== 1 ? 's' : '') + ' selected';
+  btn.disabled = checked < 2;
+  btn.style.opacity = checked >= 2 ? '1' : '0.5';
+}
+
+function toggleCardStyle(checkbox, cardId) {
+  const card = document.getElementById(cardId);
+  if (!card) return;
+  if (checkbox.checked) {
+    card.style.borderColor = 'var(--ss-primary)';
+    card.style.background = 'var(--ss-primary-light)';
+  } else {
+    card.style.borderColor = '';
+    card.style.background = '';
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}My Orders — SmartShoppy{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  
+  <!-- Page Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="fw-bold mb-1"><i class="bi bi-box-seam text-primary me-2"></i>My Orders</h4>
+      <p class="text-muted small mb-0">Track, manage and review your purchases</p>
+    </div>
+  </div>
+
+  {% if orders %}
+  <div class="row g-4">
+    {% for order in orders %}
+    <div class="col-12">
+      <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <!-- Card Header: Order ID & Status -->
+        <div class="card-header bg-light border-bottom-0 pt-3 pb-2 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <span class="fw-bold text-dark me-2">Order #{{ order.order_id }}</span>
+            <small class="text-muted">Placed on {{ order.created_at.strftime('%d %b %Y') }}</small>
+          </div>
+          <span class="badge rounded-pill {% if order.status=='Placed' %}bg-secondary{% elif order.status=='Processing' %}bg-primary{% elif order.status=='Shipped' %}bg-info text-dark{% elif order.status=='Delivered' %}bg-success{% elif order.status=='Cancelled' %}bg-danger{% else %}bg-light text-dark{% endif %} px-3 py-2">
+            {{ order.status }}
+          </span>
+        </div>
+        
+        <!-- Card Body: Product Info -->
+        <div class="card-body p-4">
+          <div class="row align-items-center g-3">
+            <!-- Product Image -->
+            <div class="col-auto">
+              <div class="bg-white border rounded p-2 d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                {% if order.product_image %}
+                <img src="{{ order.product_image }}" alt="Product" class="img-fluid" style="max-height: 100%; object-fit: contain;">
+                {% else %}
+                <i class="bi bi-image text-muted fs-3"></i>
+                {% endif %}
+              </div>
+            </div>
+            
+            <!-- Product Details -->
+            <div class="col">
+              <h6 class="fw-bold mb-1" style="line-height: 1.4;">{{ order.product_name }}</h6>
+              <div class="text-muted small mb-2">
+                <span>Qty: <strong>{{ order.quantity }}</strong></span>
+                <span class="mx-2">•</span>
+                <span>Total: <strong class="text-primary">₹{{ "{:,.2f}".format(order.total_amount) }}</strong></span>
+              </div>
+              <p class="mb-0 small fw-semibold text-success"><i class="bi bi-truck me-1"></i> ETA: {{ order.estimated_delivery_date.strftime('%d %b %Y') }}</p>
+            </div>
+            
+            <!-- Actions -->
+            <div class="col-md-auto text-md-end mt-3 mt-md-0 d-flex flex-wrap gap-2 justify-content-start justify-content-md-end">
+              <a href="{{ url_for('order_detail', order_id=order.order_id) }}" class="btn btn-primary btn-sm px-3 py-2 fw-semibold">
+                View Details
+              </a>
+              {% if order.status in ['Placed', 'Processing'] %}
+              <form action="{{ url_for('cancel_order', order_id=order.order_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to cancel this order? This action cannot be undone.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm px-3 py-2 fw-semibold">Cancel Order</button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="ss-card text-center py-5 shadow-sm border-0 rounded-4">
+    <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary rounded-circle mb-3" style="width: 80px; height: 80px;">
+      <i class="bi bi-bag-x fs-1"></i>
+    </div>
+    <h5 class="fw-bold text-dark mb-2">No orders found</h5>
+    <p class="text-muted small mb-4">Looks like you haven't made your first purchase yet.</p>
+    <a href="{{ url_for('index') }}" class="btn btn-primary px-4 py-2 fw-semibold">
+      <i class="bi bi-cart me-1"></i> Start Shopping
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

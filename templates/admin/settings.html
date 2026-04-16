@@ -1,0 +1,74 @@
+{% extends "admin/base.html" %}
+{% block title %}Admin Settings{% endblock %}
+{% block header_title %}Admin Settings{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Profile Details Card -->
+    <div class="col-lg-4">
+        <div class="admin-card p-4 text-center h-100">
+            <div class="avatar mb-3 mx-auto" style="width: 80px; height: 80px; background: #1e5fd9; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold;">
+                {{ current_user.username[0]|upper }}
+            </div>
+            <h5 class="fw-bold mb-1">{{ current_user.username }}</h5>
+            <p class="text-muted small mb-3">
+                {{ current_user.email }}<br>
+                {% if current_user.phone %}<i class="bi bi-telephone-fill me-1"></i>{{ current_user.phone }}{% else %}<span class="text-black-50 fst-italic">No mobile number</span>{% endif %}
+            </p>
+            <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill">Administrator</span>
+            
+            <hr class="my-4">
+            <div class="text-start">
+                <p class="small text-muted mb-1">Joined SmartShoppy</p>
+                <p class="fw-medium">{{ current_user.created_at.strftime('%d %B %Y') }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Form Card -->
+    <div class="col-lg-8">
+        <div class="admin-card p-4 h-100">
+            <h5 class="fw-bold mb-4">Update Personal Details</h5>
+            <form method="POST">
+                {{ form.hidden_tag() }}
+                
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        {{ form.username.label(class="form-label") }}
+                        {{ form.username(class="form-control", placeholder="Enter new username") }}
+                        {% if form.username.errors %}<div class="text-danger small mt-1">{% for error in form.username.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.phone.label(class="form-label") }}
+                        {{ form.phone(class="form-control", placeholder="Enter mobile number") }}
+                        {% if form.phone.errors %}<div class="text-danger small mt-1">{% for error in form.phone.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    {{ form.email.label(class="form-label") }} <span class="badge bg-warning bg-opacity-10 text-warning ms-1" style="font-size: 0.7rem;">Requires OTP</span>
+                    {{ form.email(class="form-control", placeholder="Enter new email") }}
+                    {% if form.email.errors %}<div class="text-danger small mt-1">{% for error in form.email.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                </div>
+
+                <hr class="my-4">
+                <h6 class="fw-bold mb-3">Change Password <span class="badge bg-warning bg-opacity-10 text-warning ms-1" style="font-size: 0.7rem; vertical-align: middle;">Requires OTP</span></h6>
+                
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        {{ form.new_password.label(class="form-label") }}
+                        {{ form.new_password(class="form-control", placeholder="Leave blank to keep current") }}
+                        {% if form.new_password.errors %}<div class="text-danger small mt-1">{% for error in form.new_password.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.confirm_password.label(class="form-label") }}
+                        {{ form.confirm_password(class="form-control", placeholder="Confirm new password") }}
+                        {% if form.confirm_password.errors %}<div class="text-danger small mt-1">{% for error in form.confirm_password.errors %}{{ error }}{% endfor %}</div>{% endif %}
+                    </div>
+                </div>
+
+                {{ form.submit(class="btn btn-primary px-4") }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

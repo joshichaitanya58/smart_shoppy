@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Register — SmartShoppy{% endblock %}
+
+{% block content %}
+<section class="ss-auth-page">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-5 col-lg-4">
+        <div class="ss-auth-card">
+          <!-- Icon + Title -->
+          <div class="text-center mb-4">
+            <div class="d-inline-flex align-items-center justify-content-center bg-success bg-opacity-10 rounded-3 mb-3"
+              style="width:54px;height:54px;">
+              <i class="bi bi-person-plus fs-4 text-success"></i>
+            </div>
+            <h2 class="fw-bold fs-4 mb-1">
+              {% if user_type == 'admin' %}
+              Admin Register
+              {% else %}
+              Create Account
+              {% endif %}
+            </h2>
+            <p class="text-muted small">Start tracking prices for free</p>
+          </div>
+
+          <form method="POST" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-muted text-uppercase"
+                style="letter-spacing:0.04em;">Username</label>
+              <input type="text" name="username" class="form-control" placeholder="Choose a username"
+                value="{{ form.username.data or '' }}" required autocomplete="username" minlength="3" maxlength="20" />
+              {% for error in form.username.errors %}
+              <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+              {% endfor %}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-muted text-uppercase"
+                style="letter-spacing:0.04em;">Email</label>
+              <input type="email" name="email" class="form-control" placeholder="your@email.com"
+                value="{{ form.email.data or '' }}" required autocomplete="email" />
+              {% for error in form.email.errors %}
+              <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+              {% endfor %}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-muted text-uppercase"
+                style="letter-spacing:0.04em;">Password</label>
+              <input type="password" name="password" class="form-control" placeholder="Min. 6 characters" required
+                autocomplete="new-password" minlength="6" />
+              {% for error in form.password.errors %}
+              <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+              {% endfor %}
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label small fw-semibold text-muted text-uppercase"
+                style="letter-spacing:0.04em;">Confirm Password</label>
+              <input type="password" name="confirm" class="form-control" placeholder="Repeat your password" required
+                autocomplete="new-password" />
+              {% for error in form.confirm.errors %}
+              <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+              {% endfor %}
+            </div>
+
+            {% if user_type == 'admin' %}
+            <div class="mb-3 form-check">
+              {{ form.is_admin(class="form-check-input", id="isAdminCheck", checked=True, onclick="return false;") }}
+              <label class="form-check-label fw-semibold text-success" for="isAdminCheck">
+                <i class="bi bi-shield-lock me-1"></i> Registering as Admin
+              </label>
+            </div>
+            {% endif %}
+
+
+            <button type="submit" class="btn btn-success w-100 py-2 fw-semibold">
+              <i class="bi bi-person-plus me-2"></i>Create Free Account
+            </button>
+          </form>
+
+          <hr class="my-3">
+          <p class="text-center text-muted small mb-0">
+            Already have an account?
+            <a href="{{ url_for('login') }}" class="text-primary fw-semibold text-decoration-none">Login</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

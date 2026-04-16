@@ -1,0 +1,42 @@
+body {
+    background: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.card {
+    border: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+}
+.card-img-top {
+    height: 200px;
+    object-fit: contain;
+    background: #fff;
+    padding: 10px;
+}
+.rating i {
+    margin-right: 2px;
+}
+.sticky-top {
+    top: 20px;
+    z-index: 100;
+}
+.badge {
+    font-size: 0.8rem;
+}
+.table th {
+    width: 20%;
+}
+.seller-badge {
+    background: #e9ecef;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    display: inline-block;
+    margin-right: 5px;
+    margin-bottom: 5px;
+}

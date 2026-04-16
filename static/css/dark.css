@@ -1,0 +1,30 @@
+body.dark-mode {
+    background: #1a1a1a;
+    color: #f0f0f0;
+}
+.dark-mode .card {
+    background: #2d2d2d;
+    color: #f0f0f0;
+}
+.dark-mode .navbar {
+    background: #0d0d0d !important;
+}
+.dark-mode .table {
+    color: #f0f0f0;
+}
+.dark-mode .table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: #2d2d2d;
+}
+.dark-mode .btn-outline-primary {
+    color: #f0f0f0;
+    border-color: #f0f0f0;
+}
+.dark-mode .btn-outline-primary:hover {
+    background-color: #f0f0f0;
+    color: #000;
+}
+
+[data-bs-theme="dark"] .modal-content {
+  background: rgba(20, 25, 35, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}

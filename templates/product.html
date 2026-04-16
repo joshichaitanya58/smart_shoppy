@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} — SmartShoppy{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small">
+      <li class="breadcrumb-item"><a href="{{ url_for('index') }}" class="text-muted text-decoration-none">Home</a></li>
+      <li class="breadcrumb-item text-muted">Search</li>
+      <li class="breadcrumb-item active text-muted">{{ product.name[:50] }}{% if product.name|length > 50 %}…{% endif %}</li>
+    </ol>
+  </nav>
+
+  <!-- Product Header -->
+  <div class="ss-product-header mb-4">
+    <div class="row g-4 align-items-start">
+      <!-- Image -->
+      <div class="col-md-4 text-center">
+        {% if product.image_url %}
+        <img src="{{ product.image_url }}" alt="{{ product.name }}" class="ss-detail-img"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+        <div class="ss-detail-img-ph" style="display:none;">
+          <i class="bi bi-box-seam fs-1 text-muted"></i>
+        </div>
+        {% else %}
+        <div class="ss-detail-img-ph">
+          <i class="bi bi-box-seam fs-1 text-muted"></i>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Info -->
+      <div class="col-md-8">
+        {% if product.brand %}
+        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 mb-2">{{ product.brand }}</span>
+        {% endif %}
+        <h1 class="fw-bold fs-4 mb-3" style="line-height:1.3;">{{ product.name }}</h1>
+
+        <!-- Rating -->
+        {% if product.rating and product.rating > 0 %}
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <div class="d-flex align-items-center gap-1">
+            {% for i in range(1,6) %}
+              {% if i <= product.rating|int %}
+                <i class="bi bi-star-fill text-warning"></i>
+              {% elif product.rating - i + 1 >= 0.5 %}
+                <i class="bi bi-star-half text-warning"></i>
+              {% else %}
+                <i class="bi bi-star text-muted"></i>
+              {% endif %}
+            {% endfor %}
+          </div>
+          <span class="text-muted small">{{ "%.1f"|format(product.rating) }}</span>
+          {% if product.review_count %}
+          <span class="text-muted small">({{ product.review_count }} reviews)</span>
+          {% endif %}
+          <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">
+            <i class="bi bi-tag me-1"></i>{{ product.offers|length }} offers
+          </span>
+        </div>
+        {% else %}
+        <div class="mb-3">
+          <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">
+            <i class="bi bi-tag me-1"></i>{{ product.offers|length }} offers
+          </span>
+        </div>
+        {% endif %}
+
+        <!-- Best Price -->
+        {% set prices = product.offers | map(attribute='price') | list %}
+        {% if prices %}
+        {% set csymbol = CURRENCY_SYMBOLS.get(product.offers[0].currency, '₹') %}
+        <div class="mb-3 p-3 rounded" style="background:rgba(13,110,253,0.05);border:1px solid rgba(13,110,253,0.15);">
+          <small class="text-muted text-uppercase fw-semibold d-block mb-1" style="letter-spacing:0.05em;font-size:0.7rem;">Best Available Price</small>
+          <span class="ss-big-price">{{ csymbol }}{{ "{:,.0f}".format(prices|min) }}</span>
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="d-flex flex-wrap gap-2">
+          {% if product.offers %}
+          {% set best_offer = sorted_offers | first %}
+          {% if best_offer %}
+          {% set csymbol = CURRENCY_SYMBOLS.get(best_offer.currency, '₹') %}
+          {% if best_offer.url %}
+          <a href="{{ best_offer.url }}" target="_blank" rel="noopener" class="btn btn-primary">
+            <i class="bi bi-cart me-1"></i> Buy for {{ csymbol }}{{ "{:,.0f}".format(best_offer.price) }}
+          </a>
+          {% endif %}
+          <a href="{{ url_for('checkout', offer_id=best_offer.id) }}" class="btn btn-success">
+            <i class="bi bi-bag-plus me-1"></i> Order Now
+          </a>
+          {% endif %}
+          {% endif %}
+
+          {% if current_user.is_authenticated %}
+          <a href="{{ url_for('save_product', product_id=product.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-bookmark me-1"></i> Save
+          </a>
+          <a href="{{ url_for('new_alert') }}?product={{ product.id }}" class="btn btn-outline-warning">
+            <i class="bi bi-bell me-1"></i> Set Alert
+          </a>
+          {% else %}
+          <a href="{{ url_for('login') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-person me-1"></i> Login to save &amp; set alerts
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Analysis Section -->
+  <div class="ss-ai-card mb-4" id="aiAnalysisSection">
+    <div class="d-flex align-items-center mb-3">
+      <i class="bi bi-robot text-primary fs-4 me-2"></i>
+      <h5 class="fw-bold mb-0">AI Product Analysis</h5>
+    </div>
+    <div id="aiAnalysisContent">
+      <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+      <span class="ms-2 text-muted small">Generating intelligent analysis...</span>
+    </div>
+  </div>
+
+  <!-- Current Offers -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="fw-bold mb-0"><i class="bi bi-tags text-primary me-2"></i>Current Offers</h5>
+  </div>
+
+  {% set prices = product.offers | map(attribute='price') | list %}
+  {% set best_price = prices|min if prices else None %}
+  <div class="row g-3 mb-4">
+    {% for offer in sorted_offers %}
+    <div class="col-sm-6 col-lg-4">
+      <div class="ss-offer-card p-3" style="--platform-color:{% if 'amazon' in offer.seller|lower %}#ff9900{% elif 'flipkart' in offer.seller|lower %}#2874f0{% elif 'ebay' in offer.seller|lower %}#0064d2{% elif 'walmart' in offer.seller|lower %}#0071ce{% else %}var(--ss-primary){% endif %}">
+        <div class="ss-offer-badges">
+          {% if offer.price == best_price %}<span class="badge ss-badge-best">Best</span>{% endif %}
+          {% if 'In Stock' in (offer.availability or '') %}<span class="badge ss-badge-fast">In Stock</span>{% endif %}
+        </div>
+        <div class="ss-offer-platform-header pb-2 mb-2">
+          <span class="fw-bold d-inline-flex align-items-center gap-1">
+            {% if 'amazon' in offer.seller|lower %}🛒{% elif 'flipkart' in offer.seller|lower %}🔵{% elif 'ebay' in offer.seller|lower %}🛒{% elif 'walmart' in offer.seller|lower %}🏪{% else %}🏠{% endif %}
+            {{ offer.seller }}
+            {% set is_trusted = namespace(value=false) %}
+            {% set seller_lower = offer.seller|lower %}
+            {% for tp in TRUSTED_PLATFORMS %}
+              {% if tp in seller_lower %}{% set is_trusted.value = true %}{% endif %}
+            {% endfor %}
+            {% if is_trusted.value %}
+              <i class="bi bi-patch-check-fill text-primary" title="Verified Trusted Platform" style="font-size:0.95rem;"></i>
+            {% endif %}
+          </span>
+        </div>
+        <!-- Offer Rating -->
+        {% if offer.rating and offer.rating > 0 %}
+        <div class="d-flex align-items-center gap-1 mb-2">
+          {% for i in range(1,6) %}
+            {% if i <= offer.rating|int %}<i class="bi bi-star-fill text-warning" style="font-size:0.7rem;"></i>
+            {% elif offer.rating - i + 1 >= 0.5 %}<i class="bi bi-star-half text-warning" style="font-size:0.7rem;"></i>
+            {% else %}<i class="bi bi-star text-muted" style="font-size:0.7rem;"></i>
+            {% endif %}
+          {% endfor %}
+          {% if offer.review_count %}
+          <small class="text-muted" style="font-size:0.75rem;">({{ "{:,.0f}".format(offer.review_count) }})</small>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {% set csymbol = CURRENCY_SYMBOLS.get(offer.currency, '₹') %}
+        <div class="ss-offer-price mb-2">{{ csymbol }}{{ "{:,.0f}".format(offer.price) }}</div>
+        <span class="badge {% if 'In Stock' in (offer.availability or '') %}bg-success{% else %}bg-warning text-dark{% endif %} bg-opacity-15 border mb-3 d-block w-auto" style="width:fit-content!important;">
+          {{ offer.availability or 'Unknown' }}
+        </span>
+        {% if offer.url %}
+        <a href="{{ offer.url }}" target="_blank" rel="noopener"
+           class="btn btn-primary ss-buy-btn btn-sm w-100">
+          Buy on {{ offer.seller }} <i class="bi bi-box-arrow-up-right ms-1"></i>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Price History Chart -->
+  <div class="ss-card">
+    <div class="ss-card-header d-flex justify-content-between align-items-center">
+      <h6 class="fw-bold mb-0"><i class="bi bi-graph-up text-primary me-2"></i>Price History</h6>
+      <div class="d-flex gap-1">
+        <a href="?days=7" class="btn btn-sm {% if days==7 %}btn-primary{% else %}btn-outline-secondary{% endif %}">7D</a>
+        <a href="?days=30" class="btn btn-sm {% if days==30 %}btn-primary{% else %}btn-outline-secondary{% endif %}">30D</a>
+        <a href="?days=90" class="btn btn-sm {% if days==90 %}btn-primary{% else %}btn-outline-secondary{% endif %}">90D</a>
+      </div>
+    </div>
+    <div class="ss-card-body">
+      {% if history_dates %}
+      <canvas id="priceChart" style="max-height:320px;"></canvas>
+      {% else %}
+      <div class="text-center py-4 text-muted">
+        <i class="bi bi-bar-chart fs-1 d-block mb-2" style="opacity:0.3;"></i>
+        <div class="fw-semibold mb-1">No price history yet</div>
+        <p class="small">Price data will be recorded as searches are made over time.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+{% if history_dates %}
+const labels = {{ history_dates | tojson }};
+const rawDatasets = {{ datasets | tojson }};
+const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)';
+const tickColor = isDark ? '#9ca3af' : '#6c757d';
+const COLORS = ['#0d6efd','#06b6d4','#10b981','#f59e0b','#ef4444','#8b5cf6'];
+
+const datasets = rawDatasets.map((ds, i) => ({
+  label: ds.label,
+  data: ds.data,
+  borderColor: COLORS[i % COLORS.length],
+  backgroundColor: COLORS[i % COLORS.length] + '18',
+  borderWidth: 2.5,
+  pointRadius: 4,
+  pointHoverRadius: 7,
+  pointBackgroundColor: COLORS[i % COLORS.length],
+  fill: true,
+  tension: 0.4,
+  spanGaps: true,
+}));
+
+const ctx = document.getElementById('priceChart').getContext('2d');
+new Chart(ctx, {
+  type: 'line',
+  data: { labels, datasets },
+  options: {
+    responsive: true,
+    maintainAspectRatio: true,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: { color: tickColor, font: { family: 'Inter', size: 12 }, usePointStyle: true, padding: 16 }
+      },
+      tooltip: {
+        backgroundColor: isDark ? '#1a1d27' : '#ffffff',
+        borderColor: 'rgba(13,110,253,0.3)',
+        borderWidth: 1,
+        titleColor: isDark ? '#e9ecef' : '#212529',
+        bodyColor: isDark ? '#9ca3af' : '#6c757d',
+        padding: 12,
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: {{ CURRENCY_SYMBOLS.get(product.offers[0].currency if product.offers else 'INR', '₹') }}${ctx.parsed.y ? ctx.parsed.y.toLocaleString() : 'N/A'}`
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: gridColor },
+        ticks: { color: tickColor, font: { size: 11 } }
+      },
+      y: {
+        grid: { color: gridColor },
+        ticks: {
+          color: tickColor,
+          font: { size: 11 },
+          callback: v => '{{ CURRENCY_SYMBOLS.get(product.offers[0].currency if product.offers else 'INR', '₹') }}' + v.toLocaleString()
+        }
+      }
+    }
+  }
+});
+{% endif %}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const aiContent = document.getElementById('aiAnalysisContent');
+  if(aiContent) {
+    fetch(`/api/product/{{ product.slug }}/analyze`)
+      .then(res => res.json())
+      .then(data => {
+         // Display the structured HTML response
+         let html = data.analysis.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+         aiContent.innerHTML = `<div style="font-size: 0.95rem; color: var(--ss-text); line-height: 1.6;">${html}</div>`;
+      })
+      .catch(err => {
+         aiContent.innerHTML = `<span class="text-danger">Failed to load analysis. Please refresh to try again.</span>`;
+      });
+  }
+});
+</script>
+{% endblock %}

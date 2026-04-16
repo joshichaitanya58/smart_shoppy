@@ -1,0 +1,724 @@
+{% extends "base.html" %}
+{% block title %}Checkout — SmartShoppy{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-4 p-md-5">
+          <div class="text-center mb-4">
+            <h3 class="fw-bold"><i class="bi bi-cart-check-fill text-primary me-2"></i>Secure Checkout</h3>
+          </div>
+
+          <!-- Enhanced Progress Bar -->
+          <div class="d-flex justify-content-between mb-2 small fw-semibold text-muted px-1">
+            <span class="{% if step >= 1 %}text-primary{% endif %}"><i
+                class="bi bi-1-circle{% if step >= 1 %}-fill{% endif %} me-1"></i>Cart</span>
+            <span class="{% if step >= 2 %}text-primary{% endif %} d-none d-sm-inline"><i
+                class="bi bi-2-circle{% if step >= 2 %}-fill{% endif %} me-1"></i>Delivery</span>
+            <span class="{% if step >= 3 %}text-primary{% endif %} d-none d-sm-inline"><i
+                class="bi bi-3-circle{% if step >= 3 %}-fill{% endif %} me-1"></i>Payment</span>
+            <span class="{% if step >= 4 %}text-primary{% endif %}"><i
+                class="bi bi-4-circle{% if step >= 4 %}-fill{% endif %} me-1"></i>Review</span>
+          </div>
+          <div class="progress mb-5" style="height: 8px; border-radius: 10px; background-color: var(--ss-border);">
+            {% set progress_percent = step * 25 %}
+            {% set style_kw = 'style' %}
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" {{
+              style_kw }}="width: {{ progress_percent }}%;" aria-valuenow="{{ progress_percent }}" aria-valuemin="0"
+              aria-valuemax="100"></div>
+          </div>
+
+          {% if step == 1 %}
+          <form method="POST">
+            <input type="hidden" name="current_step" value="1" />
+            <div class="row g-4 align-items-center">
+              <div class="col-md-4 text-center">
+                <div class="bg-light p-3 rounded-4 border">
+                  {% if product.image_url %}
+                  <img src="{{ product.image_url }}" alt="{{ product.name }}" class="img-fluid rounded"
+                    style="max-height:180px; object-fit:contain;">
+                  {% else %}
+                  <i class="bi bi-box-seam text-muted" style="font-size: 4rem;"></i>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-8">
+                <h5 class="fw-bold mb-2" style="line-height: 1.4;">{{ product.name }}</h5>
+
+                <!-- Platform Selection -->
+                <div class="mb-4 mt-3">
+                  <label class="form-label fw-semibold text-muted text-uppercase small mb-2">Select Platform /
+                    Seller</label>
+                  <div class="d-flex flex-column gap-2"
+                    style="max-height: 240px; overflow-y: auto; padding-right: 5px;">
+                    {% for o in sorted_offers %}
+                    {% set is_oos = o.availability and 'out of stock' in o.availability|lower %}
+                    <label
+                      class="border rounded-3 p-3 d-flex align-items-center justify-content-between platform-select-label {% if o.id == offer.id and not is_oos %}border-primary bg-primary bg-opacity-10 shadow-sm{% elif is_oos %}bg-light opacity-50{% else %}bg-white{% endif %}"
+                      for="offer_{{ o.id }}"
+                      style="cursor: {% if is_oos %}not-allowed{% else %}pointer{% endif %}; transition: all 0.2s;">
+                      <div class="d-flex align-items-center gap-3">
+                        <input class="form-check-input mt-0" type="radio" name="selected_offer_id" id="offer_{{ o.id }}"
+                          value="{{ o.id }}" {% if o.id==offer.id and not is_oos %}checked{% endif %} {% if is_oos
+                          %}disabled{% endif %} onchange="updatePlatformSelection(this)" required>
+                        <div>
+                          <span
+                            class="fw-bold d-flex align-items-center {% if is_oos %}text-muted{% else %}text-dark{% endif %}">
+                            {{ o.seller }}
+                            {% set is_trusted = namespace(value=false) %}
+                            {% set seller_lower = o.seller|lower %}
+                            {% for tp in TRUSTED_PLATFORMS %}
+                            {% if tp in seller_lower %}{% set is_trusted.value = true %}{% endif %}
+                            {% endfor %}
+                            {% if is_trusted.value %}
+                            <i class="bi bi-patch-check-fill text-primary ms-1" title="Verified Trusted Platform"
+                              style="font-size:0.85rem;"></i>
+                            {% endif %}
+                          </span>
+                          <small class="{% if is_oos %}text-danger fw-bold{% else %}text-muted{% endif %}"
+                            style="font-size: 0.75rem;">{{ o.availability or 'In Stock' }}</small>
+                        </div>
+                      </div>
+                      <div class="text-end">
+                        <span class="fw-bold {% if is_oos %}text-muted{% else %}text-primary{% endif %} fs-5">₹{{
+                          "{:,.0f}".format(o.price) }}</span>
+                        {% if loop.first and not is_oos %}
+                        <span class="badge bg-success ms-2" style="font-size: 0.65rem;">Best Deal</span>
+                        {% endif %}
+                      </div>
+                    </label>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-3 mb-4">
+                  <label class="form-label mb-0 fw-semibold">Quantity:</label>
+                  <input type="number" class="form-control text-center fw-bold" name="quantity"
+                    value="{{ data.quantity }}" min="1" max="10" style="width: 80px;" required>
+                </div>
+
+                <div class="d-flex justify-content-end">
+                  <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">Continue to Delivery <i
+                      class="bi bi-arrow-right ms-2"></i></button>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          {% elif step == 2 %}
+          <style>
+            .address-select-card {
+              border: 2px solid var(--ss-border, #dee2e6);
+              background-color: var(--ss-card-bg, #ffffff);
+              color: var(--ss-text, #212529);
+              cursor: pointer;
+              transition: all 0.2s ease-in-out;
+            }
+
+            .btn-check:checked+.address-select-card {
+              border-color: #0d6efd;
+              background-color: rgba(13, 110, 253, 0.05);
+            }
+          </style>
+          <form method="POST">
+            <input type="hidden" name="current_step" value="2" />
+            <h5 class="fw-bold mb-4">Delivery Address</h5>
+
+            {% if addresses %}
+            <div class="mb-4">
+              <label class="form-label fw-semibold text-muted text-uppercase small mb-3">Select Saved Address</label>
+              <div class="row g-3">
+                {% for addr in addresses %}
+                <div class="col-md-6">
+                  <input type="radio" class="btn-check" name="address_id" id="addr_{{ addr.id }}" value="{{ addr.id }}"
+                    {% if loop.first %}checked{% endif %} onchange="toggleNewAddressForm()">
+                  <label class="address-select-card w-100 text-start p-3 rounded-4 h-100 shadow-sm"
+                    for="addr_{{ addr.id }}">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span class="fw-bold">{{ addr.name }}</span>
+                      {% if addr.is_default %}<span class="badge bg-primary small">Default</span>{% endif %}
+                    </div>
+                    <p class="mb-1 small"><i class="bi bi-telephone-fill me-1 text-muted"></i>{{ addr.phone }}</p>
+                    <p class="mb-0 small text-muted" style="line-height: 1.4;">
+                      {{ addr.street }}<br>
+                      {% if addr.landmark %}{{ addr.landmark }}<br>{% endif %}
+                      {{ addr.city }}, {{ addr.state }} - {{ addr.pincode }}
+                    </p>
+                  </label>
+                </div>
+                {% endfor %}
+                <div class="col-md-6">
+                  <input type="radio" class="btn-check" name="address_id" id="addr_new" value="new"
+                    onchange="toggleNewAddressForm()">
+                  <label
+                    class="address-select-card w-100 text-center p-4 rounded-4 h-100 d-flex flex-column justify-content-center align-items-center shadow-sm"
+                    for="addr_new">
+                    <i class="bi bi-plus-circle fs-3 mb-2 text-primary"></i>
+                    <span class="fw-semibold">Add New Address</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div id="newAddressForm" style="display: none;">
+              <h6 class="fw-bold mb-3 border-top pt-4">Enter New Address</h6>
+              <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold text-muted text-uppercase">Full Name</label>
+                  <input type="text" name="name" id="new_name" class="form-control" value="{{ data.name }}">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-semibold text-muted text-uppercase">Mobile Number</label>
+                  <input type="tel" name="phone" id="new_phone" class="form-control" value="{{ data.phone }}"
+                    placeholder="9876543210">
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-semibold text-muted text-uppercase">Email Address</label>
+                  <input type="email" name="email" id="new_email" class="form-control" value="{{ data.email }}">
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-semibold text-muted text-uppercase">Street Address</label>
+                  <textarea name="street" id="new_street" class="form-control" rows="2"
+                    placeholder="House No., Building, Street Area">{{ data.street }}</textarea>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold text-muted text-uppercase">City</label>
+                  <input type="text" name="city" id="new_city" class="form-control" value="{{ data.city }}">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold text-muted text-uppercase">State</label>
+                  <input type="text" name="state" id="new_state" class="form-control" value="{{ data.state }}">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold text-muted text-uppercase">Pincode</label>
+                  <input type="text" name="pincode" id="new_pincode" class="form-control" value="{{ data.pincode }}"
+                    pattern="[0-9]{6}">
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-semibold text-muted text-uppercase">Landmark (optional)</label>
+                  <input type="text" name="landmark" id="new_landmark" class="form-control" value="{{ data.landmark }}">
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <div class="row g-3 mb-4">
+              <input type="hidden" name="address_id" value="new">
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-muted text-uppercase">Full Name</label>
+                <input type="text" name="name" class="form-control" value="{{ data.name }}" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-muted text-uppercase">Mobile Number</label>
+                <input type="tel" name="phone" class="form-control" value="{{ data.phone }}" placeholder="9876543210"
+                  required>
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-semibold text-muted text-uppercase">Email Address</label>
+                <input type="email" name="email" class="form-control" value="{{ data.email }}" required>
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-semibold text-muted text-uppercase">Street Address</label>
+                <textarea name="street" class="form-control" rows="2" placeholder="House No., Building, Street Area"
+                  required>{{ data.street }}</textarea>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold text-muted text-uppercase">City</label>
+                <input type="text" name="city" class="form-control" value="{{ data.city }}" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold text-muted text-uppercase">State</label>
+                <input type="text" name="state" class="form-control" value="{{ data.state }}" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold text-muted text-uppercase">Pincode</label>
+                <input type="text" name="pincode" class="form-control" value="{{ data.pincode }}" pattern="[0-9]{6}"
+                  required>
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-semibold text-muted text-uppercase">Landmark (optional)</label>
+                <input type="text" name="landmark" class="form-control" value="{{ data.landmark }}">
+              </div>
+            </div>
+            {% endif %}
+
+            <div class="d-flex justify-content-between">
+              <a href="{{ url_for('checkout', offer_id=offer.id, step=1) }}" class="btn btn-outline-secondary px-4"><i
+                  class="bi bi-arrow-left me-2"></i>Back</a>
+              <button type="submit" class="btn btn-primary px-4 fw-semibold">Continue to Payment <i
+                  class="bi bi-arrow-right ms-2"></i></button>
+            </div>
+          </form>
+
+          {% elif step == 3 %}
+          <form method="POST" id="step3Form">
+            <input type="hidden" name="current_step" value="3" />
+            <h5 class="fw-bold mb-4">Select Payment Method</h5>
+            <div class="row g-4 mb-5">
+              <!-- Left Column: Payment Options -->
+              <div class="col-md-5">
+                <div class="d-flex flex-column gap-2">
+                  {% set pay_methods = [('Credit/Debit Card', 'bi-credit-card', 'card'), ('UPI', 'bi-phone-vibrate',
+                  'upi'), ('Net Banking', 'bi-bank', 'netbanking'), ('Cash on Delivery', 'bi-cash-coin', 'cod')] %}
+                  {% for method, icon, target in pay_methods %}
+                  <div class="form-check p-3 border rounded-3 mb-2 payment-method-btn"
+                    style="transition: all 0.2s; cursor: pointer;">
+                    <input class="form-check-input ms-1 mt-1" type="radio" name="payment_method" id="pay_{{ target }}"
+                      value="{{ method }}" {% if method in data.get('payment_method', 'Cash on Delivery' ) %}checked{%
+                      endif %} onchange="togglePaymentDetails('{{ target }}')" style="cursor: pointer;">
+                    <label class="form-check-label w-100 ms-2" for="pay_{{ target }}" style="cursor: pointer;">
+                      <i class="bi {{ icon }} fs-5 me-2 text-primary"></i>
+                      <span class="fw-semibold">{{ method }}</span>
+                    </label>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+              <!-- Right Column: Payment Details -->
+              <div class="col-md-7">
+                <div class="bg-light p-4 rounded-4 border position-relative mb-4 shadow-sm">
+
+                  <!-- Credit/Debit Card -->
+                  <div id="details-card" class="payment-detail-section" style="display: none;">
+                    <h6 class="fw-bold mb-3"><i class="bi bi-credit-card-2-front text-primary me-2"></i>Enter Card
+                      Details</h6>
+                    <div class="mb-3">
+                      <label class="form-label small text-muted mb-1">Card Number</label>
+                      <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i
+                            class="bi bi-credit-card text-muted"></i></span>
+                        <input type="text" class="form-control border-start-0" name="card_number"
+                          placeholder="XXXX XXXX XXXX XXXX" maxlength="19">
+                      </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                      <div class="col-6">
+                        <label class="form-label small text-muted mb-1">Expiry Date</label>
+                        <input type="text" class="form-control" name="card_expiry" placeholder="MM/YY" maxlength="5">
+                      </div>
+                      <div class="col-6">
+                        <label class="form-label small text-muted mb-1">CVV</label>
+                        <div class="input-group">
+                          <input type="password" class="form-control border-end-0" name="card_cvv" placeholder="•••"
+                            maxlength="4">
+                          <span class="input-group-text bg-white border-start-0"><i class="bi bi-info-circle text-muted"
+                              title="3 or 4 digits on back of card"></i></span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label small text-muted mb-1">Name on Card</label>
+                      <input type="text" class="form-control" name="card_name" placeholder="E.g. John Doe">
+                    </div>
+                    <div class="d-flex align-items-center mt-3 text-success small fw-semibold">
+                      <i class="bi bi-shield-lock-fill fs-5 me-2"></i> Your card details are securely encrypted.
+                    </div>
+                  </div>
+
+                  <!-- UPI -->
+                  <div id="details-upi" class="payment-detail-section" style="display: none;">
+                    <h6 class="fw-bold mb-4"><i class="bi bi-qr-code-scan text-primary me-2"></i>Pay via UPI</h6>
+                    <div class="text-center mb-4">
+                      {% set sub_total = offer.price * data.quantity %}
+                      {% set h_fee = HANDLING_FEE if sub_total > HANDLING_FEE_THRESHOLD else 0 %}
+                      {% set grand_total = sub_total + PLATFORM_FEE + DELIVERY_FEE + h_fee %}
+                      {% set upi_amount = "%.2f"|format(grand_total) %}
+                      {% set upi_data = "upi://pay?pa=" ~ ADMIN_UPI_ID ~ "&pn=SmartShoppy&am=" ~ upi_amount ~ "&cu=INR"
+                      %}
+                      <div class="bg-white p-2 d-inline-block rounded-3 border mb-2 shadow-sm">
+                        <img src="https://quickchart.io/qr?text={{ upi_data | urlencode }}&size=150&margin=1"
+                          alt="UPI QR Code" class="img-fluid" width="140" height="140">
+                      </div>
+                      <p class="small text-muted mb-0">Scan QR using any UPI app to pay <strong>₹{{
+                          "{:,.0f}".format(grand_total) }}</strong></p>
+                    </div>
+                    <div class="d-flex align-items-center mb-3">
+                      <hr class="flex-grow-1"><span class="mx-3 text-muted small fw-semibold">OR ENTER UPI ID</span>
+                      <hr class="flex-grow-1">
+                    </div>
+                    <div>
+                      <label class="form-label small text-muted mb-1">UPI ID / VPA</label>
+                      <input type="text" class="form-control" name="upi_id" placeholder="username@upi">
+                      <div class="form-text small">A payment request will be sent to this UPI ID.</div>
+                    </div>
+                  </div>
+
+                  <!-- Net Banking -->
+                  <div id="details-netbanking" class="payment-detail-section" style="display: none;">
+                    <h6 class="fw-bold mb-4"><i class="bi bi-bank text-primary me-2"></i>Net Banking</h6>
+                    <div class="mb-4">
+                      <label class="form-label small text-muted mb-1">Select your Bank</label>
+                      <select class="form-select" name="bank_name">
+                        <option value="" disabled selected>Choose a bank...</option>
+                        <option value="HDFC Bank">HDFC Bank</option>
+                        <option value="ICICI Bank">ICICI Bank</option>
+                        <option value="State Bank of India">State Bank of India (SBI)</option>
+                        <option value="Axis Bank">Axis Bank</option>
+                        <option value="Kotak Mahindra Bank">Kotak Mahindra Bank</option>
+                        <option value="Punjab National Bank">Punjab National Bank</option>
+                        <option value="Bank of Baroda">Bank of Baroda</option>
+                        <option value="Other">Other Banks...</option>
+                      </select>
+                    </div>
+                    <div class="alert alert-primary bg-primary bg-opacity-10 border-0 small mb-0">
+                      <i class="bi bi-info-circle-fill me-2"></i>You will be securely redirected to your bank's website
+                      to complete the payment.
+                    </div>
+                  </div>
+
+                  <!-- Cash on Delivery -->
+                  <div id="details-cod" class="payment-detail-section" style="display: none;">
+                    <h6 class="fw-bold mb-3"><i class="bi bi-cash-coin text-primary me-2"></i>Cash on Delivery</h6>
+                    <!-- Premium Coupon Section -->
+                    <div class="bg-white p-4 rounded-4 border shadow-sm">
+                      <h6 class="fw-bold mb-3"><i class="bi bi-tags text-primary me-2"></i>Apply Coupon or Gift Card
+                      </h6>
+
+                      <!-- Input Box -->
+                      <div class="input-group mb-4 shadow-sm"
+                        style="border-radius: 8px; overflow: hidden; border: 1px solid var(--ss-border);">
+                        <input type="text" class="form-control border-0 bg-light fw-semibold" id="couponInput"
+                          name="applied_coupon" placeholder="Enter coupon code"
+                          style="padding-left: 15px; text-transform: uppercase;">
+                        <button class="btn btn-dark px-4 fw-semibold" type="button"
+                          onclick="applyCoupon()">Apply</button>
+                      </div>
+
+                      <!-- Available Coupons -->
+                      <h6 class="small fw-bold text-muted text-uppercase mb-3">Available Offers</h6>
+
+                      <div class="d-flex flex-column gap-3">
+                        <!-- Coupon 1 -->
+                        <div class="d-flex align-items-center justify-content-between p-3 border rounded-3"
+                          style="background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(13, 110, 253, 0.03) 10px, rgba(13, 110, 253, 0.03) 20px);">
+                          <div class="d-flex align-items-center gap-3">
+                            <div class="bg-primary bg-opacity-10 text-primary p-2 rounded"><i
+                                class="bi bi-percent fs-5"></i></div>
+                            <div>
+                              <div class="fw-bold text-dark">SAVE10</div>
+                              <div class="small text-muted">Get 10% off up to ₹500 on this order.</div>
+                            </div>
+                          </div>
+                          <button type="button" class="btn btn-sm btn-outline-primary fw-semibold px-3"
+                            onclick="fillCoupon('SAVE10')">APPLY</button>
+                        </div>
+
+                        <!-- Coupon 2 -->
+                        <div class="d-flex align-items-center justify-content-between p-3 border rounded-3"
+                          style="background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(25, 135, 84, 0.03) 10px, rgba(25, 135, 84, 0.03) 20px);">
+                          <div class="d-flex align-items-center gap-3">
+                            <div class="bg-success bg-opacity-10 text-success p-2 rounded"><i
+                                class="bi bi-gift fs-5"></i></div>
+                            <div>
+                              <div class="fw-bold text-dark">FESTIVE250</div>
+                              <div class="small text-muted">Flat ₹250 discount on UPI payments.</div>
+                            </div>
+                          </div>
+                          <button type="button" class="btn btn-sm btn-outline-success fw-semibold px-3"
+                            onclick="fillCoupon('FESTIVE250')">APPLY</button>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+              </div>
+            </div>
+            <div class="d-flex justify-content-between">
+              <a href="{{ url_for('checkout', offer_id=offer.id, step=2) }}" class="btn btn-outline-secondary px-4"><i
+                  class="bi bi-arrow-left me-2"></i>Back</a>
+              <button type="submit" id="btnSubmitStep3" class="btn btn-primary px-4 fw-semibold">Review Order <i
+                  class="bi bi-arrow-right ms-2"></i></button>
+            </div>
+          </form>
+
+          {% elif step == 4 %}
+          <h5 class="fw-bold mb-4">Review & Confirm Order</h5>
+          <div class="row g-4 mb-5">
+            <div class="col-md-6">
+              <div class="bg-light p-3 rounded-4 h-100 border">
+                <h6 class="fw-bold border-bottom pb-2 mb-3"><i class="bi bi-box-seam text-primary me-2"></i>Order
+                  Summary</h6>
+                <p class="mb-2 small"><span class="text-muted">Product:</span> <strong class="float-end text-end"
+                    style="max-width:60%;">{{ product.name[:40] }}...</strong></p>
+                <p class="mb-2 small"><span class="text-muted">Seller:</span> <strong class="float-end">{{ offer.seller
+                    }}</strong></p>
+                <p class="mb-2 small"><span class="text-muted">Unit Price:</span> <strong class="float-end">₹{{
+                    "{:,.0f}".format(offer.price) }}</strong></p>
+                <p class="mb-2 small"><span class="text-muted">Quantity:</span> <strong class="float-end">{{
+                    data.quantity }}</strong></p>
+                <p class="mb-2 small"><span class="text-muted">Subtotal:</span> <strong class="float-end">₹{{ "{:,.0f}".format(offer.price * data.quantity) }}</strong></p>
+                <p class="mb-2 small"><span class="text-muted">Delivery Charges:</span> <strong class="float-end text-success">+ ₹{{ "{:,.0f}".format(DELIVERY_FEE) }}</strong></p>
+                <p class="mb-2 small"><span class="text-muted">Platform Fee:</span> <strong class="float-end text-success">+ ₹{{ "{:,.0f}".format(PLATFORM_FEE) }}</strong></p>
+                {% set sub_total = offer.price * data.quantity %}
+                {% if sub_total > HANDLING_FEE_THRESHOLD %}
+                <p class="mb-2 small"><span class="text-muted">Handling Fee:</span> <strong class="float-end text-success">+ ₹{{ "{:,.0f}".format(HANDLING_FEE) }}</strong></p>
+                {% set h_fee = HANDLING_FEE %}
+                {% else %}
+                {% set h_fee = 0 %}
+                {% endif %}
+                {% if data.discount_amount and data.discount_amount > 0 %}
+                <p class="mb-2 small"><span class="text-muted">Discount ({{ data.coupon_code }}):</span> <strong class="float-end text-success">- ₹{{ "{:,.0f}".format(data.discount_amount) }}</strong></p>
+                {% endif %}
+                {% set grand_total = sub_total + PLATFORM_FEE + DELIVERY_FEE + h_fee - (data.discount_amount or 0) %}
+                <hr class="my-2">
+                <p class="mb-0 fs-5"><span class="text-muted fs-6">Total:</span> <strong
+                    class="float-end text-primary">₹{{ "{:,.0f}".format(grand_total) }}</strong></p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="bg-light p-3 rounded-4 h-100 border">
+                <h6 class="fw-bold border-bottom pb-2 mb-3"><i class="bi bi-truck text-primary me-2"></i>Delivery Info
+                </h6>
+                <p class="mb-1 small"><strong>{{ data.name }}</strong></p>
+                <p class="mb-1 small text-muted">{{ data.phone }} • {{ data.email }}</p>
+                <p class="mb-2 small text-muted" style="line-height:1.4;">
+                  {{ data.street }}<br>
+                  {% if data.landmark %}Landmark: {{ data.landmark }}<br>{% endif %}
+                  {{ data.city }}, {{ data.state }} - {{ data.pincode }}
+                </p>
+                <span
+                  class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 mt-2 px-2 py-1"><i
+                    class="bi bi-credit-card me-1"></i>{{ data.payment_method }}</span>
+              </div>
+            </div>
+          </div>
+          <form method="POST">
+            <input type="hidden" name="current_step" value="4" />
+            <div class="d-flex justify-content-between">
+              <a href="{{ url_for('checkout', offer_id=offer.id, step=3) }}" class="btn btn-outline-secondary px-4"><i
+                  class="bi bi-arrow-left me-2"></i>Back</a>
+              <button type="submit" class="btn btn-success px-4 py-2 fw-bold fs-6 shadow-sm"><i
+                  class="bi bi-check-circle me-2"></i>Place Order Now</button>
+            </div>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Processing Overlay -->
+<div id="paymentProcessingOverlay" class="ss-loading-overlay"
+  style="z-index: 1050; display: none; flex-direction: column; align-items: center; justify-content: center; background: rgba(255,255,255,0.95);">
+  <div class="text-center" id="paymentLoadingState">
+    <div class="spinner-border text-primary" style="width: 3.5rem; height: 3.5rem;" role="status"></div>
+    <h4 class="mt-4 fw-bold text-dark">Checking Payment Status...</h4>
+    <p class="text-muted mb-0">Please do not refresh or close this window.</p>
+  </div>
+  <div class="text-center" id="paymentSuccessState" style="display: none;">
+    <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem; animation: scaleIn 0.3s ease-in-out;"></i>
+    <h4 class="mt-4 fw-bold text-success">Payment Successful!</h4>
+    <p class="text-muted mb-0">Proceeding to the next step...</p>
+  </div>
+</div>
+<style>
+  @keyframes scaleIn {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+
+    60% {
+      transform: scale(1.2);
+      opacity: 1;
+    }
+
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function updatePlatformSelection(radio) {
+    document.querySelectorAll('.platform-select-label').forEach(label => {
+      label.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10', 'shadow-sm');
+      label.classList.add('bg-white');
+    });
+    const selectedLabel = radio.closest('label');
+    selectedLabel.classList.remove('bg-white');
+    selectedLabel.classList.add('border-primary', 'bg-primary', 'bg-opacity-10', 'shadow-sm');
+  }
+
+  const quantityInput = document.querySelector('input[name="quantity"]');
+  if (quantityInput) {
+    quantityInput.addEventListener('change', () => {
+      const q = Math.max(1, Math.min(10, Number(quantityInput.value) || 1));
+      quantityInput.value = q;
+    });
+  }
+
+  function toggleNewAddressForm() {
+    const newAddressRadio = document.getElementById('addr_new');
+    const newAddressForm = document.getElementById('newAddressForm');
+    if (!newAddressForm) return;
+
+    const inputs = newAddressForm.querySelectorAll('input:not([type="hidden"]), textarea');
+
+    if (newAddressRadio && newAddressRadio.checked) {
+      newAddressForm.style.display = 'block';
+      inputs.forEach(input => {
+        if (['new_name', 'new_phone', 'new_email', 'new_street', 'new_city', 'new_state', 'new_pincode'].includes(input.id)) {
+          input.required = true;
+        }
+      });
+    } else {
+      newAddressForm.style.display = 'none';
+      inputs.forEach(input => input.required = false);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('newAddressForm')) {
+      toggleNewAddressForm();
+    }
+
+    // Payment Details Toggle
+    window.togglePaymentDetails = function (target) {
+      document.querySelectorAll('.payment-detail-section').forEach(el => {
+        el.style.display = 'none';
+        el.querySelectorAll('input, select').forEach(inp => inp.required = false);
+      });
+      const active = document.getElementById('details-' + target);
+      if (active) {
+        active.style.display = 'block';
+        if (target === 'card') {
+          active.querySelectorAll('input').forEach(inp => inp.required = true);
+        } else if (target === 'upi') {
+          active.querySelector('input[name="upi_id"]').required = true;
+        } else if (target === 'netbanking') {
+          active.querySelector('select[name="bank_name"]').required = true;
+        }
+      }
+      document.querySelectorAll('.payment-method-btn').forEach(btn => {
+        btn.classList.remove('border-primary', 'bg-white', 'shadow-sm');
+        const radio = btn.querySelector('input[type="radio"]');
+        if (radio && radio.checked) {
+          btn.classList.add('border-primary', 'bg-white', 'shadow-sm');
+        }
+      });
+
+      // Dynamic Submit Button Update
+      const btnSubmitStep3 = document.getElementById('btnSubmitStep3');
+      if (btnSubmitStep3) {
+        if (target === 'cod') {
+          btnSubmitStep3.innerHTML = 'Review Order <i class="bi bi-arrow-right ms-2"></i>';
+          btnSubmitStep3.className = 'btn btn-primary px-4 fw-semibold';
+        } else {
+          btnSubmitStep3.innerHTML = '<i class="bi bi-shield-check me-2"></i> Complete Payment';
+          btnSubmitStep3.className = 'btn btn-success px-4 fw-semibold shadow-sm';
+        }
+      }
+    };
+    const checkedRadio = document.querySelector('input[name="payment_method"]:checked');
+    if (checkedRadio) {
+      togglePaymentDetails(checkedRadio.id.replace('pay_', ''));
+    }
+
+    // Handle Step 3 Form Submission with Animation
+    const step3Form = document.getElementById('step3Form');
+    if (step3Form) {
+      step3Form.addEventListener('submit', function (e) {
+        const selectedMethod = document.querySelector('input[name="payment_method"]:checked');
+        if (selectedMethod && selectedMethod.value !== 'Cash on Delivery') {
+          e.preventDefault();
+          if (!step3Form.checkValidity()) {
+            e.stopPropagation();
+            step3Form.classList.add('was-validated');
+            return;
+          }
+
+          const overlay = document.getElementById('paymentProcessingOverlay');
+          const loadingState = document.getElementById('paymentLoadingState');
+          const successState = document.getElementById('paymentSuccessState');
+
+          if (overlay && loadingState && successState) {
+            overlay.style.display = 'flex';
+            loadingState.style.display = 'block';
+            successState.style.display = 'none';
+
+            // Simulate checking payment (3 seconds)
+            setTimeout(() => {
+              loadingState.style.display = 'none';
+              successState.style.display = 'block';
+
+              // Show success for 1.5 seconds then submit
+              setTimeout(() => {
+                step3Form.submit();
+              }, 1500);
+            }, 3000);
+          } else {
+            step3Form.submit();
+          }
+        }
+      });
+    }
+
+    // Format Credit Card Fields automatically (visual effect)
+    const cardNum = document.querySelector('input[name="card_number"]');
+    if (cardNum) cardNum.addEventListener('input', e => e.target.value = e.target.value.replace(/[^\d]/g, '').replace(/(.{4})/g, '$1 ').trim());
+    const cardExp = document.querySelector('input[name="card_expiry"]');
+    if (cardExp) cardExp.addEventListener('input', e => e.target.value = e.target.value.replace(/[^\d]/g, '').replace(/^(\d{2})/, '$1/').substring(0, 5));
+
+    // Coupon UI Logic
+    window.fillCoupon = function (code) {
+      const input = document.getElementById('couponInput');
+      if (input) {
+        input.value = code;
+        applyCoupon();
+      }
+    };
+
+      window.applyCoupon = async function () {
+      const input = document.getElementById('couponInput');
+      if (!input) return;
+      const code = input.value.trim().toUpperCase();
+      if (code === '') {
+        if (typeof showToast === 'function') showToast('Please enter a valid coupon code.', 'warning');
+        return;
+      }
+
+        const methodNode = document.querySelector('input[name="payment_method"]:checked');
+        const method = methodNode ? methodNode.value : 'Cash on Delivery';
+        const subtotal = {{ offer.price * data.quantity }};
+
+      const btn = input.nextElementSibling;
+        const oldHtml = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+      btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/validate-coupon', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({code, subtotal, payment_method: method})
+            });
+            const result = await res.json();
+            if (result.success) {
+                btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Applied!';
+                btn.classList.remove('btn-dark');
+                btn.classList.add('btn-success');
+                if (typeof showToast === 'function') showToast(`Coupon ${result.code} applied! Discount of ₹${result.discount.toFixed(2)} will reflect in the next step.`, 'success');
+                input.readOnly = true;
+            } else {
+                btn.innerHTML = oldHtml;
+                btn.disabled = false;
+                input.value = '';
+                if (typeof showToast === 'function') showToast(result.message, 'danger');
+            }
+        } catch(e) {
+            btn.innerHTML = oldHtml;
+            btn.disabled = false;
+            if (typeof showToast === 'function') showToast('Error validating coupon. Please try again.', 'danger');
+        }
+    };
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Trending Products — SmartShoppy{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="mb-4">
+    <h4 class="fw-bold mb-1"><i class="bi bi-fire text-danger me-2"></i>Trending Products</h4>
+    <p class="text-muted small mb-0">Discover what's popular and highly searched right now.</p>
+  </div>
+
+  {% if products %}
+  <div class="row g-3">
+    {% for product in products %}
+    <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+      <a href="{{ url_for('product_detail', slug=product.slug) }}" class="text-decoration-none">
+        <div class="ss-trending-card h-100">
+          <img src="{{ product.image_url }}" alt="{{ product.name }}" class="ss-trending-img"
+               onerror="this.parentElement.innerHTML='<div class=\'ss-trending-img-ph\'><i class=\'bi bi-bag fs-2 text-muted\'></i></div>'"
+               loading="lazy" />
+          <div class="p-3">
+            <p class="ss-trending-name small fw-medium mb-1">
+              {{ product.name[:50] }}{% if product.name|length > 50 %}...{% endif %}
+            </p>
+            {% set prices = product.offers | map(attribute='price') | list %}
+            {% if prices %}
+            {% set csymbol = CURRENCY_SYMBOLS.get(product.offers[0].currency, '₹') if product.offers else '₹' %}
+            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 small">
+              from {{ csymbol }}{{ "{:,.0f}".format(prices | min) }}
+            </span>
+            {% else %}
+            <span class="badge bg-light text-muted border small">
+              <i class="bi bi-search me-1"></i>{{ product.views or 0 }} views
+            </span>
+            {% endif %}
+          </div>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="ss-card text-center py-5">
+    <i class="bi bi-fire fs-1 text-muted d-block mb-3" style="opacity:0.3;"></i>
+    <h5 class="fw-semibold text-muted">No trending products found yet.</h5>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
