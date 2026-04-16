@@ -9,5 +9,6 @@ beautifulsoup4
 APScheduler
 email-validator
 pytz
+pymysql
 WTForms
 groq
